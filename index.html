@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>4D Live Results — West Malaysia, East Malaysia & Singapore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e100d;
+    --bg-soft:#16180f;
+    --gold:#d9b45b;
+    --gold-bright:#f0d27e;
+    --ink:#efe9da;
+    --ink-dim:#9a937f;
+    --card:#fdfbf5;
+    --card-ink:#1b1a15;
+    --card-line:#e4ddc9;
+    --card-head:#4a4433;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    background:
+      radial-gradient(1100px 500px at 50% -200px, rgba(217,180,91,.16), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Archivo',system-ui,sans-serif;
+    min-height:100vh;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(14,16,13,.92);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid rgba(217,180,91,.25);
+  }
+  .header-inner{
+    max-width:1240px;margin:0 auto;padding:14px 20px;
+    display:flex;align-items:center;gap:24px;flex-wrap:wrap;
+  }
+  .logo{
+    font-weight:900;font-size:26px;letter-spacing:.5px;
+    font-stretch:110%;
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold) 70%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-decoration:none;
+  }
+  .logo span{color:var(--ink);-webkit-text-fill-color:var(--ink);font-weight:600;font-size:15px;letter-spacing:2px;margin-left:8px;text-transform:uppercase}
+  nav{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap}
+  nav a{
+    color:var(--ink-dim);text-decoration:none;font-size:14px;font-weight:600;
+    padding:8px 14px;border-radius:8px;transition:color .15s,background .15s;
+  }
+  nav a:hover,nav a:focus-visible{color:var(--gold-bright);background:rgba(217,180,91,.1)}
+  nav a.active{color:var(--gold-bright)}
+
+  /* ---------- live strip ---------- */
+  .live-strip{
+    max-width:1240px;margin:22px auto 0;padding:0 20px;
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+  }
+  .draw-date{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  .draw-date h1{font-size:20px;font-weight:800;letter-spacing:.3px}
+  .live-pill{
+    display:inline-flex;align-items:center;gap:7px;
+    font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+    color:#ff6b5e;border:1px solid rgba(255,107,94,.4);border-radius:999px;padding:5px 12px;
+  }
+  .live-dot{width:7px;height:7px;border-radius:50%;background:#ff6b5e;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  @media (prefers-reduced-motion: reduce){.live-dot{animation:none}}
+  .date-nav{display:flex;gap:8px}
+  .date-nav button{
+    background:var(--bg-soft);border:1px solid rgba(217,180,91,.3);color:var(--ink);
+    font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:8px;cursor:pointer;
+    transition:border-color .15s;
+  }
+  .date-nav button:hover{border-color:var(--gold)}
+  .date-nav .cur{color:var(--gold-bright)}
+
+  /* ---------- tabs ---------- */
+  .tabs{
+    max-width:1240px;margin:18px auto 0;padding:0 20px;
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .tab{
+    font-family:inherit;font-size:14px;font-weight:700;letter-spacing:.3px;
+    padding:11px 22px;border-radius:999px;cursor:pointer;
+    background:var(--bg-soft);color:var(--ink-dim);
+    border:1px solid rgba(217,180,91,.25);
+    transition:all .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{
+    background:linear-gradient(180deg,var(--gold-bright),var(--gold));
+    color:#241d0a;border-color:var(--gold-bright);
+  }
+  .tab:focus-visible{outline:2px solid var(--gold-bright);outline-offset:2px}
+
+  /* ---------- grid ---------- */
+  .grid{
+    max-width:1240px;margin:22px auto 60px;padding:0 20px;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:22px;
+  }
+
+  /* ---------- provider card ---------- */
+  .card{
+    background:var(--card);color:var(--card-ink);
+    border-radius:var(--radius);overflow:hidden;
+    box-shadow:0 8px 30px rgba(0,0,0,.45);
+    display:flex;flex-direction:column;
+  }
+  .card-head{
+    padding:14px 18px;display:flex;align-items:center;gap:12px;color:#fff;
+  }
+  .card-head .badge{
+    width:38px;height:38px;border-radius:9px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.18);font-weight:900;font-size:15px;letter-spacing:-.5px;
+  }
+  .card-head .t{font-weight:800;font-size:17px;line-height:1.15}
+  .card-head .d{font-size:12px;opacity:.85;font-weight:600;margin-top:2px}
+
+  .top-prizes{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--card-line)}
+  .tp{padding:14px 8px 16px;text-align:center;border-right:1px solid var(--card-line)}
+  .tp:last-child{border-right:none}
+  .tp .lbl{font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#8a8268}
+  .tp .num{font-size:clamp(26px,3.2vw,34px);font-weight:700;margin-top:4px;letter-spacing:1px}
+  .tp.first .num{color:#a2231d}
+
+  .sec-title{
+    background:var(--card-head);color:#f4eeda;
+    font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+    text-align:center;padding:7px 8px;
+  }
+  .numgrid{display:grid;grid-template-columns:repeat(5,1fr)}
+  .numgrid div{
+    padding:10px 4px;text-align:center;font-size:16px;font-weight:600;
+    border-right:1px solid var(--card-line);border-bottom:1px solid var(--card-line);
+  }
+  .numgrid div:nth-child(5n){border-right:none}
+  .numgrid .empty{color:#c9c2ac}
+
+  .jackpot{border-top:1px solid var(--card-line);margin-top:auto}
+  .jackpot .row{display:flex;justify-content:space-between;align-items:center;padding:9px 16px;font-size:13px;border-bottom:1px solid var(--card-line)}
+  .jackpot .row:last-child{border-bottom:none}
+  .jackpot .k{font-weight:700;color:#6d6650}
+  .jackpot .v{font-weight:700;color:#a2231d;font-size:15px}
+
+  .extra{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid var(--card-line);font-size:13px}
+  .extra .k{font-weight:700;color:#6d6650;letter-spacing:1px;text-transform:uppercase;font-size:11px}
+  .extra .v{font-weight:700;font-size:16px}
+
+  .empty-state{
+    grid-column:1/-1;text-align:center;padding:70px 20px;color:var(--ink-dim);
+    border:1px dashed rgba(217,180,91,.3);border-radius:var(--radius);
+  }
+  .empty-state b{color:var(--ink);display:block;font-size:18px;margin-bottom:6px}
+
+  footer{
+    border-top:1px solid rgba(217,180,91,.2);padding:26px 20px 40px;
+    text-align:center;color:var(--ink-dim);font-size:12.5px;line-height:1.7;
+  }
+  footer .disclaimer{max-width:720px;margin:0 auto}
+
+  @media (max-width:480px){
+    .grid{grid-template-columns:1fr}
+    .logo{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#">4D<span>Live Results</span></a>
+    <nav aria-label="Main">
+      <a href="#" class="active">Latest Result</a>
+      <a href="#">Past Results</a>
+      <a href="#">4D History</a>
+      <a href="#">Dictionary</a>
+    </nav>
+  </div>
+</header>
+
+<div class="live-strip">
+  <div class="draw-date">
+    <h1 id="drawDateTitle">Saturday, 15 Aug 2026</h1>
+    <span class="live-pill"><span class="live-dot"></span>Live</span>
+  </div>
+  <div class="date-nav">
+    <button type="button" title="Previous draw">‹ Prev</button>
+    <button type="button" class="cur">Today</button>
+    <button type="button" title="Next draw">Next ›</button>
+  </div>
+</div>
+
+<div class="tabs" role="tablist" aria-label="Region">
+  <button class="tab" role="tab" aria-selected="true" data-region="west">West Malaysia</button>
+  <button class="tab" role="tab" aria-selected="false" data-region="east">East Malaysia</button>
+  <button class="tab" role="tab" aria-selected="false" data-region="sg">Singapore</button>
+</div>
+
+<main class="grid" id="grid"></main>
+
+<footer>
+  <div class="disclaimer">
+    Results shown are for reference only. Please verify with the official operators.
+    This site is not affiliated with Magnum, Sports Toto, Da Ma Cai, Grand Dragon, or Singapore Pools.
+    Play responsibly — must be 21 and above.
+  </div>
+</footer>
+
+<script>
+/* =========================================================
+   MOCK DATA — structured exactly like the future API response.
+   Later: replace MOCK with
+     const data = await (await fetch('/api/results?date=...')).json()
+   ========================================================= */
+const MOCK = {
+  drawDate: "2026-08-15",
+  drawDay: "Saturday, 15 Aug 2026",
+  regions: {
+    west: [
+      {
+        id: "gd4d", name: "Grand Dragon 4D", drawNo: null,
+        color: "#c31410", badge: "GD",
+        prizes: { first: "3722", second: "4760", third: "0889" },
+        special: ["2997","8080","4951","3087","4740","1845","1860","----","----","3312","----","----","3219","7992","----"],
+        consolation: ["0931","6881","8976","9842","5618","3116","9347","3445","9830","3277"]
+      },
+      {
+        id: "damacai", name: "Damacai 1+3D", drawNo: "#6118/26",
+        color: "#0a1e8f", badge: "DMC",
+        prizes: { first: "3041", second: "8111", third: "3228" },
+        special: ["4647","7958","0868","2745","4356","5873","6991","1097","2766","7862"],
+        consolation: ["7630","5751","7067","9874","6272","9518","7440","8025","9874","7597"],
+        jackpots: [
+          { label: "1+3D Jackpot 1", amount: "10,207,488.80" },
+          { label: "1+3D Jackpot 2", amount: "161,856.70" }
+        ]
+      },
+      {
+        id: "magnum", name: "Magnum 4D", drawNo: "#408/26",
+        color: "#e8c400", textColor: "#231a00", badge: "M",
+        prizes: { first: "6039", second: "1796", third: "9813" },
+        special: ["6677","0678","----","0867","----","5908","4443","2172","5722","----","----","0011","6085","5923","----"],
+        consolation: ["9915","9926","6774","6490","8668","3396","2768","0969","7136","7526"],
+        jackpots: [
+          { label: "4D Jackpot 1", amount: "7,623,985.76" },
+          { label: "4D Jackpot 2", amount: "301,163.16" }
+        ]
+      },
+      {
+        id: "toto4d", name: "SportsToto 4D", drawNo: "#6171/26",
+        color: "#a2231d", badge: "ST",
+        extras: [{ label: "Zodiac", value: "DOG" }],
+        prizes: { first: "2976", second: "3857", third: "2299" },
+        special: ["6015","----","9505","----","0387","4210","7743","----","1198","5560","----","8834","----","2071","6659"],
+        consolation: ["4433","0912","7788","3345","9021","5567","1230","8804","6671","2359"]
+      },
+      {
+        id: "fireball", name: "SportsToto Fireball", drawNo: "#6171/26",
+        color: "#a2231d", badge: "FB",
+        extras: [{ label: "Fireball", value: "6" }],
+        tiers: [
+          { title: "First Prize ( RM 500 )", numbers: ["2976","6976","2676","2966","2976"] },
+          { title: "Second Prize ( RM 200 )", numbers: ["3857","6857","3657","3847","3856"] }
+        ]
+      },
+      {
+        id: "toto5d", name: "SportsToto 5D", drawNo: "#6171/26",
+        color: "#a2231d", badge: "5D",
+        pairs: [
+          ["1st","00198"],["4th","0198"],
+          ["2nd","75056"],["5th","198"],
+          ["3rd","84350"],["6th","98"]
+        ]
+      },
+      {
+        id: "toto6d", name: "SportsToto 6D", drawNo: "#6171/26",
+        color: "#a2231d", badge: "6D",
+        pairs: [
+          ["1st","338741"],["2nd","38741 / 33874"],
+          ["3rd","8741 / 3387"],["4th","741 / 338"],
+          ["5th","41 / 33"]
+        ]
+      }
+    ],
+    east: [
+      {
+        id: "cashsweep", name: "Cash Sweep 1+3D", drawNo: "#5417/26",
+        color: "#0a7a3d", badge: "CS",
+        prizes: { first: "7208", second: "1954", third: "6633" },
+        special: ["0842","3391","5570","8126","4409","9083","2764","6218","1035","7752"],
+        consolation: ["5501","2246","8873","0439","6690","3128","9915","4067","7342","1580"]
+      },
+      {
+        id: "stc", name: "Sandakan STC 4D", drawNo: "#5964/26",
+        color:"#7a0a5e", badge:"STC",
+        prizes: { first: "4471", second: "8092", third: "2358" },
+        special: ["1187","6640","3925","0563","8814","5209","2776","9431","7058","4392"],
+        consolation: ["6612","0985","3347","8120","5578","2903","7461","1854","9036","4429"]
+      },
+      {
+        id: "sabah88", name: "Sabah 88 4D", drawNo: "#4732/26",
+        color:"#00579c", badge:"88",
+        prizes: { first: "9137", second: "0644", third: "5821" },
+        special: ["3308","7752","1196","6483","2270","8035","4914","0567","9642","5128"],
+        consolation: ["2851","7304","0468","6127","9583","3746","1092","8265","4830","5519"]
+      }
+    ],
+    sg: [
+      {
+        id: "sgpools", name: "Singapore Pools 4D", drawNo: "#5312",
+        color: "#123c8c", badge: "SG",
+        prizes: { first: "5804", second: "2371", third: "9046" },
+        special: ["0713","4482","6650","1928","8365","3097","7241","5586","2814","9430"],
+        consolation: ["6172","0845","3509","8724","1263","5938","2406","7681","4057","9312"]
+      }
+    ]
+  }
+};
+
+/* ---------- render ---------- */
+const grid = document.getElementById('grid');
+
+function numGridHTML(nums, cols = 5){
+  return `<div class="numgrid mono" style="grid-template-columns:repeat(${cols},1fr)">` +
+    nums.map(n => `<div class="${n === '----' ? 'empty' : ''}">${n}</div>`).join('') +
+  `</div>`;
+}
+
+function cardHTML(p){
+  const headText = p.textColor || '#fff';
+  let body = '';
+
+  if (p.extras) {
+    body += p.extras.map(e =>
+      `<div class="extra"><span class="k">${e.label}</span><span class="v mono">${e.value}</span></div>`
+    ).join('');
+  }
+
+  if (p.prizes) {
+    body += `
+    <div class="top-prizes">
+      <div class="tp first"><div class="lbl">1st Prize</div><div class="num mono">${p.prizes.first}</div></div>
+      <div class="tp"><div class="lbl">2nd Prize</div><div class="num mono">${p.prizes.second}</div></div>
+      <div class="tp"><div class="lbl">3rd Prize</div><div class="num mono">${p.prizes.third}</div></div>
+    </div>`;
+  }
+
+  if (p.special)     body += `<div class="sec-title">Special</div>` + numGridHTML(p.special);
+  if (p.consolation) body += `<div class="sec-title">Consolation</div>` + numGridHTML(p.consolation);
+
+  if (p.tiers) {
+    p.tiers.forEach(t => {
+      body += `<div class="sec-title">${t.title}</div>` + numGridHTML(t.numbers, t.numbers.length);
+    });
+  }
+
+  if (p.pairs) {
+    body += `<div class="numgrid mono" style="grid-template-columns:auto 1fr auto 1fr">` +
+      p.pairs.map(pair =>
+        `<div style="background:#f0ead6;font-weight:700">${pair[0]}</div><div>${pair[1]}</div>`
+      ).join('') + `</div>`;
+  }
+
+  if (p.jackpots) {
+    body += `<div class="jackpot">` + p.jackpots.map(j =>
+      `<div class="row"><span class="k">${j.label}</span><span class="v mono">${j.amount}</span></div>`
+    ).join('') + `</div>`;
+  }
+
+  return `
+  <article class="card">
+    <div class="card-head" style="background:${p.color};color:${headText}">
+      <div class="badge">${p.badge}</div>
+      <div>
+        <div class="t">${p.name}</div>
+        <div class="d">(Sat) 15-Aug-2026 ${p.drawNo ? p.drawNo : ''}</div>
+      </div>
+    </div>
+    ${body}
+  </article>`;
+}
+
+function render(region){
+  const providers = MOCK.regions[region] || [];
+  if (!providers.length) {
+    grid.innerHTML = `<div class="empty-state"><b>No results yet for this draw</b>Results appear here as soon as the draw completes.</div>`;
+    return;
+  }
+  grid.innerHTML = providers.map(cardHTML).join('');
+}
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+    tab.setAttribute('aria-selected', 'true');
+    render(tab.dataset.region);
+  });
+});
+
+render('west');
+</script>
+</body>
+</html>
