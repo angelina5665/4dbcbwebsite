@@ -54,6 +54,12 @@ a{color:inherit}
 /* ============ banner ============ */
 .topbanner{display:block;max-width:1320px;margin:14px auto 0;padding:0 12px}
 .topbanner img{width:100%;height:auto;display:block;border-radius:4px}
+.cardbanner{display:block;width:100%}
+.cardbanner img{
+  width:100%;height:auto;display:block;border-radius:5px;
+  border:1px solid #b4b4b4;box-shadow:0 0 2px 1px #ddd;
+}
+.belowcard{margin-top:14px}
 
 /* ============ layout ============ */
 .container{max-width:1320px;margin:0 auto;padding:0 12px}
@@ -345,7 +351,8 @@ const DATA = {
               "6376","7405","7532","9696","9697"
             ]}
           ]
-        }
+        },
+        { banner: "singaporeRow" }
       ]
     },
     {
@@ -416,7 +423,12 @@ const BANNERS = {
     mobile: "ttb-mobile.jpg",
     alt: "TTBet — Spin sekarang, menang besar. Main sekarang."
   },
-  afterSingapore: null
+  afterSingapore: null,
+  singaporeRow: {
+    link: "https://bcb88j.com/RFAA8723385",
+    mobile: "banner-mobile.jpg",
+    alt: "BCB88 — Hot games, big rewards. Main sekarang."
+  }
 };
 
 /* ============ renderers ============ */
@@ -494,9 +506,18 @@ function blkD3(b){
 
 const RENDERERS = { prizes3: blkPrizes3, grid: blkGrid, pairs: blkPairs, sixd: blkSixd, lotto: blkLotto, d3: blkD3 };
 
+function cardBannerHTML(key, extraClass){
+  const b = BANNERS[key];
+  if (!b) return "";
+  const img = b.card || b.mobile;
+  return '<a class="cardbanner ' + (extraClass || "") + '" href="' + esc(b.link) + '" target="_blank" rel="noopener sponsored">' +
+    '<img src="' + esc(img) + '" alt="' + esc(b.alt || "") + '"></a>';
+}
+
 function cardHTML(c){
+  if (c.banner) return cardBannerHTML(c.banner);
   const blocks = c.blocks.map(b => (RENDERERS[b.type] || (() => ""))(b)).join("");
-  return '<div class="outerbox">' +
+  const card = '<div class="outerbox">' +
     '<table class="resultTable2"><tbody><tr>' +
       '<td class="headlabel" style="width:20%;background:' + c.headBg + ';color:' + c.headColor + '">' +
         '<span class="brandlogo" style="background:' + c.logoBg + ';color:' + c.logoColor + '">' + esc(c.logoText) + '</span>' +
@@ -510,6 +531,9 @@ function cardHTML(c){
     '</tr></tbody></table>' +
     blocks +
   '</div>';
+  return c.bannerBelow
+    ? '<div>' + card + cardBannerHTML(c.bannerBelow, "belowcard") + '</div>'
+    : card;
 }
 
 document.getElementById("app").innerHTML = DATA.sections.map(s =>
