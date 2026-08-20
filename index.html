@@ -410,7 +410,12 @@ const DATA = {
      mobile  = tall image (900 x 450), used on phones
    ========================================================= */
 const BANNERS = {
-  afterMalaysia: null,
+  afterMalaysia: {
+    link: "https://ttbet.fun/RFAA9570A03",
+    desktop: "ttb.jpg", w: 1600, h: 533,
+    mobile: "ttb-mobile.jpg",
+    alt: "TTBet — Spin sekarang, menang besar. Main sekarang."
+  },
   afterSingapore: null
 };
 
@@ -422,7 +427,7 @@ function bannerHTML(key){
   if (!b) return "";
   return '<a class="topbanner" href="' + esc(b.link) + '" target="_blank" rel="noopener sponsored">' +
     '<picture><source media="(max-width:767px)" srcset="' + esc(b.mobile) + '">' +
-    '<img src="' + esc(b.desktop) + '" width="1600" height="400" alt="' + esc(b.alt || "") + '">' +
+    '<img src="' + esc(b.desktop) + '" width="' + (b.w || 1600) + '" height="' + (b.h || 400) + '" alt="' + esc(b.alt || "") + '">' +
     '</picture></a>';
 }
 
