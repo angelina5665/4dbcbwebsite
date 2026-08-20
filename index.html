@@ -51,6 +51,10 @@ a{color:inherit}
 .dropdown-menu a{display:block;padding:6px 16px;text-decoration:none;font-size:15px;color:#212529}
 .dropdown-menu a:hover{background:#f2f2f2}
 
+/* ============ banner ============ */
+.topbanner{display:block;max-width:1320px;margin:14px auto 0;padding:0 12px}
+.topbanner img{width:100%;height:auto;display:block;border-radius:4px}
+
 /* ============ layout ============ */
 .container{max-width:1320px;margin:0 auto;padding:0 12px}
 .section-bar{
@@ -149,6 +153,8 @@ footer{margin-top:34px;padding:24px 0 8px;border-top:1px solid #e5e5e5;backgroun
   .container{padding:0}
   .row{gap:10px;margin-top:10px}
   footer{padding-left:12px;padding-right:12px}
+  .topbanner{padding:0;margin-top:0}
+  .topbanner img{border-radius:0}
 }
 </style>
 </head>
@@ -168,6 +174,13 @@ footer{margin-top:34px;padding:24px 0 8px;border-top:1px solid #e5e5e5;backgroun
     <div class="box"></div>
   </div>
 </nav>
+
+<a class="topbanner" href="https://bcb88j.com/RFAA8723385" target="_blank" rel="noopener sponsored">
+  <picture>
+    <source media="(max-width:767px)" srcset="banner-mobile.jpg">
+    <img src="banner.jpg" width="1600" height="400" alt="BCB88 — Hot games, big rewards. Main sekarang.">
+  </picture>
+</a>
 
 <main class="container" id="app"></main>
 
@@ -216,7 +229,7 @@ const DATA = {
   ],
   sections: [
     {
-      title: "4D RESULT MALAYSIA", href: "malaysia-4d-result.html",
+      title: "4D RESULT MALAYSIA", href: "malaysia-4d-result.html", bannerAfter: "afterMalaysia",
       cards: [
         {
           name: "Damacai 4D", drawNo: "6119-26",
@@ -315,7 +328,7 @@ const DATA = {
       ]
     },
     {
-      title: "4D RESULT SINGAPORE", href: "singapore-4d-result.html",
+      title: "4D RESULT SINGAPORE", href: "singapore-4d-result.html", bannerAfter: "afterSingapore",
       cards: [
         {
           name: "Singapore 4D", drawNo: "5523",
@@ -389,8 +402,29 @@ const DATA = {
   ]
 };
 
+/* =========================================================
+   BANNERS
+   Add a banner by filling in one of these. Set to null to hide it.
+     link    = where tapping the banner goes
+     desktop = wide image (1600 x 400), used on laptops
+     mobile  = tall image (900 x 450), used on phones
+   ========================================================= */
+const BANNERS = {
+  afterMalaysia: null,
+  afterSingapore: null
+};
+
 /* ============ renderers ============ */
 const esc = s => String(s == null ? "" : s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+function bannerHTML(key){
+  const b = BANNERS[key];
+  if (!b) return "";
+  return '<a class="topbanner" href="' + esc(b.link) + '" target="_blank" rel="noopener sponsored">' +
+    '<picture><source media="(max-width:767px)" srcset="' + esc(b.mobile) + '">' +
+    '<img src="' + esc(b.desktop) + '" width="1600" height="400" alt="' + esc(b.alt || "") + '">' +
+    '</picture></a>';
+}
 
 function blkPrizes3(b){
   const head = b.title ? '<tr><td colspan="2" class="resultprizelable">' + esc(b.title) + '</td></tr>' : "";
@@ -475,7 +509,8 @@ function cardHTML(c){
 
 document.getElementById("app").innerHTML = DATA.sections.map(s =>
   '<div class="section-bar"><h2><a href="' + esc(s.href) + '">' + esc(s.title) + '</a></h2></div>' +
-  '<div class="row">' + s.cards.map(cardHTML).join("") + '</div>'
+  '<div class="row">' + s.cards.map(cardHTML).join("") + '</div>' +
+  (s.bannerAfter ? bannerHTML(s.bannerAfter) : "")
 ).join("");
 
 document.getElementById("dateMenu").innerHTML = DATA.recentDates
