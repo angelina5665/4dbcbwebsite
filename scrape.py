@@ -15,6 +15,7 @@ import urllib.request
 from datetime import datetime, timezone, timedelta
 
 SOURCE = "https://4d4d.co/"
+GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
 OUT = "results.json"
 
 # 4d4d.co's name for each provider -> the key our website uses
@@ -166,9 +167,37 @@ def parse(html):
     }
 
 
+def fetch_grand_dragon():
+    """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
+    raw = json.loads(fetch(GD_SOURCE))
+    g = raw.get("G")
+    if not g or not g.get("P1"):
+        return None
+    card = {"name": "Grand Dragon 4D"}
+    m = re.match(r"\((\w{3})\)\s*(\d{2})-(\w{3})-(\d{4})", g.get("DD", ""))
+    if m:
+        months = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+                  "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
+        card["drawDay"] = m.group(1)
+        card["drawDate"] = "%s-%s-%s" % (m.group(2), months.get(m.group(3), "01"), m.group(4))
+    card["first"], card["second"], card["third"] = g["P1"], g["P2"], g["P3"]
+    sp = [g.get("S%d" % i, "") for i in range(1, 14)]
+    # centre the last three, same as the source site shows them
+    card["special"] = sp[:10] + [""] + sp[10:13] + [""]
+    card["consolation"] = [g.get("C%d" % i, "") for i in range(1, 11)]
+    return card
+
+
 def main():
     html = fetch(SOURCE)
     data = parse(html)
+
+    try:
+        gd = fetch_grand_dragon()
+        if gd:
+            data["providers"]["gd4d"] = gd
+    except Exception as e:
+        print("Grand Dragon fetch failed (%s) - keeping the rest" % e, file=sys.stderr)
 
     if len(data["providers"]) < 5:
         print("Only found %d providers - refusing to overwrite results.json"
