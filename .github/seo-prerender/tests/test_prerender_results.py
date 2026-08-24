@@ -7,8 +7,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from argparse import Namespace
 from datetime import datetime, timedelta
 from pathlib import Path
+from unittest import mock
 
 
 TOOL_DIR = Path(__file__).resolve().parents[1]
@@ -19,6 +21,7 @@ SYNTHETIC_OUTPUT = TOOL_DIR / "tests" / "generated" / "synthetic-results-preview
 
 sys.path.insert(0, str(TOOL_DIR))
 import build_site  # noqa: E402
+import package_candidate  # noqa: E402
 import prerender_results as pre  # noqa: E402
 
 SCRAPE_SPEC = importlib.util.spec_from_file_location("scrape", REPO_ROOT / "scrape.py")
@@ -36,7 +39,33 @@ def current_policy() -> dict:
 
 
 def reviewed_now() -> datetime:
-    return pre.parse_updated(current_results()["updated"]) + timedelta(minutes=2)
+    updated = pre.parse_updated(current_results()["updated"])
+    reviewed = pre.parse_iso_datetime(current_policy()["accuracyReview"]["reviewedAt"])
+    assert reviewed is not None
+    return max(updated, reviewed.astimezone(pre.MYT)) + timedelta(minutes=2)
+
+
+def policy_issues(policy: dict, results: dict, *, mode: str) -> list[str]:
+    return pre.policy_blockers(policy, results, mode=mode, now=reviewed_now())
+
+
+def build_plan(results: dict, policy: dict, *, mode: str) -> dict[Path, str]:
+    return build_site.build(results, policy, mode=mode, now=reviewed_now())
+
+
+def approved_policy(results: dict) -> dict:
+    policy = current_policy()
+    for source in policy["sources"]:
+        source["publicationAllowed"] = True
+    policy["releaseApproval"] = {
+        "status": "approved",
+        "approvalId": "OWNER-EXACT-SNAPSHOT-TEST",
+        "approvedAt": (pre.parse_updated(results["updated"]) + timedelta(minutes=1)).isoformat(),
+        "resultsSha256": pre.results_snapshot_digest(results),
+        "evidence": "Synthetic unit-test approval for one exact snapshot.",
+        "reason": "Exercise the positive publication-policy path in tests.",
+    }
+    return policy
 
 
 def moon_from_results(results: dict) -> dict:
@@ -144,49 +173,89 @@ class ResultValidationTests(unittest.TestCase):
         with self.assertRaisesRegex(pre.ValidationError, "more than 7 days old"):
             pre.validate_results_shape(results, now=datetime(2026, 9, 20, 12, 0, tzinfo=pre.MYT))
 
+    def test_recent_dates_must_start_with_global_draw_date(self) -> None:
+        results = current_results()
+        results["recentDates"] = results["recentDates"][1:]
+        with self.assertRaisesRegex(pre.ValidationError, "does not match global drawDate"):
+            pre.validate_results_shape(results, now=reviewed_now())
+
 
 class PolicyAndRenderingTests(unittest.TestCase):
     def tearDown(self) -> None:
         SYNTHETIC_OUTPUT.unlink(missing_ok=True)
 
-    def test_staging_and_approved_publication_policy_pass(self) -> None:
+    def test_staging_passes_but_checked_in_policy_blocks_publication(self) -> None:
         policy = current_policy()
         results = current_results()
-        self.assertEqual([], pre.policy_blockers(policy, results, mode="staging"))
-        self.assertEqual([], pre.policy_blockers(policy, results, mode="publication"))
+        self.assertEqual([], policy_issues(policy, results, mode="staging"))
+        blockers = policy_issues(policy, results, mode="publication")
+        self.assertTrue(any("not approved for live publication" in blocker for blocker in blockers))
+        self.assertTrue(any("live release approval is not approved" in blocker for blocker in blockers))
+
+    def test_publication_approval_is_bound_to_the_exact_snapshot(self) -> None:
+        results = current_results()
+        policy = approved_policy(results)
+        self.assertEqual([], policy_issues(policy, results, mode="publication"))
+
+        changed = copy.deepcopy(results)
+        changed["recentDates"] = changed["recentDates"][:-1]
+        blockers = policy_issues(policy, changed, mode="publication")
+        self.assertTrue(any("resultsSha256 does not match" in blocker for blocker in blockers))
+
+    def test_publication_digest_includes_both_snapshot_timestamps(self) -> None:
+        results = current_results()
+        policy = approved_policy(results)
+        changed = copy.deepcopy(results)
+        changed["updated"] = "2026-08-24 14:24 MYT"
+        changed["provenance"]["verifiedAt"] = "2026-08-24T14:24:30+08:00"
+        self.assertNotEqual(
+            pre.results_snapshot_digest(results),
+            pre.results_snapshot_digest(changed),
+        )
+        blockers = policy_issues(policy, changed, mode="publication")
+        self.assertTrue(any("resultsSha256 does not match" in blocker for blocker in blockers))
+
+    def test_release_approval_cannot_predate_the_result_snapshot(self) -> None:
+        results = current_results()
+        policy = approved_policy(results)
+        policy["releaseApproval"]["approvedAt"] = (
+            pre.parse_updated(results["updated"]) - timedelta(minutes=1)
+        ).isoformat()
+        blockers = policy_issues(policy, results, mode="publication")
+        self.assertTrue(any("predates the result snapshot" in blocker for blocker in blockers))
 
     def test_snapshot_verification_ids_are_declared_and_unique(self) -> None:
         results = current_results()
         results["provenance"]["snapshotVerificationIds"].append("unknown-verification")
-        blockers = pre.policy_blockers(current_policy(), results, mode="staging")
+        blockers = policy_issues(current_policy(), results, mode="staging")
         self.assertTrue(any("unknown snapshot verification" in blocker for blocker in blockers))
 
         results = current_results()
         results["provenance"]["snapshotVerificationIds"].append(
             results["provenance"]["snapshotVerificationIds"][0]
         )
-        blockers = pre.policy_blockers(current_policy(), results, mode="staging")
+        blockers = policy_issues(current_policy(), results, mode="staging")
         self.assertTrue(any("contains duplicates" in blocker for blocker in blockers))
 
     def test_snapshot_verification_ids_and_policy_schema_are_restricted(self) -> None:
         policy = current_policy()
         policy["schemaVersion"] = 2
         policy["accuracyReview"]["snapshotVerifications"][""] = {}
-        blockers = pre.policy_blockers(policy, current_results(), mode="staging")
+        blockers = policy_issues(policy, current_results(), mode="staging")
         self.assertTrue(any("schemaVersion" in blocker for blocker in blockers))
         self.assertTrue(any("invalid snapshot verification ID" in blocker for blocker in blockers))
 
         results = current_results()
         results["provenance"]["snapshotVerificationIds"] = [""]
-        blockers = pre.policy_blockers(current_policy(), results, mode="staging")
+        blockers = policy_issues(current_policy(), results, mode="staging")
         self.assertTrue(any("not a valid ID list" in blocker for blocker in blockers))
 
     def test_snapshot_verification_digest_binds_exact_provider_object(self) -> None:
         results = current_results()
         results["providers"]["cashsweep"]["first"] = "0000"
-        blockers = pre.policy_blockers(current_policy(), results, mode="staging")
+        blockers = policy_issues(current_policy(), results, mode="staging")
         self.assertTrue(any("digest does not match cashsweep" in blocker for blocker in blockers))
-        publication_blockers = pre.policy_blockers(current_policy(), results, mode="publication")
+        publication_blockers = policy_issues(current_policy(), results, mode="publication")
         self.assertTrue(any("cashsweep" in blocker and "lacks an independent" in blocker for blocker in publication_blockers))
 
     def test_snapshot_verification_binds_draw_date_and_number(self) -> None:
@@ -196,7 +265,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         ]
         verification["providers"]["cashsweep"]["drawDate"] = "22-08-2026"
         verification["providers"]["sandakan"]["drawNo"] = "999-26"
-        blockers = pre.policy_blockers(policy, current_results(), mode="staging")
+        blockers = policy_issues(policy, current_results(), mode="staging")
         self.assertTrue(any("draw date does not match cashsweep" in blocker for blocker in blockers))
         self.assertTrue(any("draw number does not match sandakan" in blocker for blocker in blockers))
 
@@ -205,7 +274,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         policy["accuracyReview"]["snapshotVerifications"][
             "draw-2026-08-23-provider-owned-2026-08-24"
         ]["checkedAt"] = "2099-01-01T00:00:00+08:00"
-        blockers = pre.policy_blockers(policy, current_results(), mode="staging")
+        blockers = policy_issues(policy, current_results(), mode="staging")
         self.assertTrue(any("checkedAt is in the future" in blocker for blocker in blockers))
 
     def test_malformed_evidence_fails_closed_without_exception(self) -> None:
@@ -214,7 +283,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
             "draw-2026-08-23-provider-owned-2026-08-24"
         ]["providers"]["cashsweep"]
         binding["evidenceSources"] = [["not", "an", "object"], {"url": ["not-hashable"]}]
-        blockers = pre.policy_blockers(policy, current_results(), mode="publication")
+        blockers = policy_issues(policy, current_results(), mode="publication")
         self.assertTrue(any("malformed evidence" in blocker for blocker in blockers))
         self.assertTrue(any("cashsweep" in blocker and "lacks an independent" in blocker for blocker in blockers))
 
@@ -235,7 +304,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
                 "role": "provider-owned",
             },
         ]
-        blockers = pre.policy_blockers(policy, current_results(), mode="publication")
+        blockers = policy_issues(policy, current_results(), mode="publication")
         self.assertTrue(any("lacks required source roles" in blocker for blocker in blockers))
         self.assertTrue(any("lacks separate publishers" in blocker for blocker in blockers))
         self.assertTrue(any("cashsweep" in blocker and "lacks an independent" in blocker for blocker in blockers))
@@ -243,9 +312,17 @@ class PolicyAndRenderingTests(unittest.TestCase):
     def test_future_scrape_can_stage_without_reusing_manual_verification(self) -> None:
         results = current_results()
         results["provenance"].pop("snapshotVerificationIds")
-        self.assertEqual([], pre.policy_blockers(current_policy(), results, mode="staging"))
-        blockers = pre.policy_blockers(current_policy(), results, mode="publication")
+        self.assertEqual([], policy_issues(current_policy(), results, mode="staging"))
+        blockers = policy_issues(current_policy(), results, mode="publication")
         self.assertTrue(any("cashsweep" in blocker and "gd4d" in blocker for blocker in blockers))
+        missing = next(
+            blocker for blocker in blockers
+            if blocker.startswith("live publication lacks an independent cross-check")
+        )
+        self.assertEqual(
+            {"cashsweep", "gd4d", "sabah88", "sandakan", "singapore"},
+            {value.strip() for value in missing.split(":", 1)[1].split(",")},
+        )
 
     def test_raw_fragment_contains_priority_numbers_and_no_second_h1(self) -> None:
         fragment = pre.render_results_fragment(current_results())
@@ -256,7 +333,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         self.assertNotIn("<h1", fragment)
 
     def test_build_plan_contains_required_pages_and_sitemap_urls(self) -> None:
-        planned = build_site.build(current_results(), current_policy(), mode="staging")
+        planned = build_plan(current_results(), current_policy(), mode="staging")
         relative = {str(path.relative_to(REPO_ROOT)).replace("\\", "/") for path in planned}
         self.assertIn("magnum-4d-results/index.html", relative)
         self.assertIn("sports-toto-4d-results/index.html", relative)
@@ -268,7 +345,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         self.assertNotIn("example.com", sitemap)
 
     def test_homepage_progressive_enhancement_keeps_raw_results_on_json_failure(self) -> None:
-        planned = build_site.build(current_results(), current_policy(), mode="staging")
+        planned = build_plan(current_results(), current_policy(), mode="staging")
         homepage = planned[REPO_ROOT / "index.html"]
         for number in ("6456", "1917", "4083"):
             self.assertIn(number, homepage)
@@ -279,7 +356,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         self.assertNotIn("innerHTML", show_error)
 
     def test_malay_page_uses_localized_dates_navigation_and_cautious_copy(self) -> None:
-        planned = build_site.build(current_results(), current_policy(), mode="staging")
+        planned = build_plan(current_results(), current_policy(), mode="staging")
         malay = planned[REPO_ROOT / "ms" / "index.html"]
         self.assertIn("Keputusan 4D Terkini di Malaysia", malay)
         self.assertIn(build_site.malay_draw_date(current_results()["drawDate"], current_results()["drawDay"]), malay)
@@ -301,14 +378,14 @@ class PolicyAndRenderingTests(unittest.TestCase):
         results["providers"]["sabah88"]["drawDate"] = "22-08-2026"
         results["providers"]["sabah88"]["drawDay"] = "Sat"
         results["provenance"].pop("snapshotVerificationIds")
-        planned = build_site.build(results, current_policy(), mode="staging")
+        planned = build_plan(results, current_policy(), mode="staging")
         archive = planned[REPO_ROOT / "results" / "2026-08-23" / "index.html"]
         self.assertNotIn('data-provider="sabah88"', archive)
         self.assertIn('data-provider="magnum"', archive)
 
     def test_sitemap_uses_content_update_date_for_dynamic_pages(self) -> None:
         results = current_results()
-        planned = build_site.build(results, current_policy(), mode="staging")
+        planned = build_plan(results, current_policy(), mode="staging")
         sitemap = planned[REPO_ROOT / "sitemap.xml"]
         updated_date = pre.parse_updated(results["updated"]).strftime("%Y-%m-%d")
         self.assertIn(f"<loc>https://4dvip88.com/</loc>\n    <lastmod>{updated_date}</lastmod>", sitemap)
@@ -317,10 +394,10 @@ class PolicyAndRenderingTests(unittest.TestCase):
     def test_policy_requires_current_cross_check_provenance(self) -> None:
         results = current_results()
         results["provenance"].pop("crossChecks")
-        self.assertTrue(any("crossChecks" in blocker for blocker in pre.policy_blockers(current_policy(), results, mode="staging")))
+        self.assertTrue(any("crossChecks" in blocker for blocker in policy_issues(current_policy(), results, mode="staging")))
         results = current_results()
         results["provenance"]["verifiedAt"] = "2099-01-01T00:00:00+08:00"
-        self.assertTrue(any("future" in blocker for blocker in pre.policy_blockers(current_policy(), results, mode="staging")))
+        self.assertTrue(any("future" in blocker for blocker in policy_issues(current_policy(), results, mode="staging")))
 
     def test_publication_build_fails_without_release_approval(self) -> None:
         policy = current_policy()
@@ -333,7 +410,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         for source in policy["sources"]:
             source["publicationAllowed"] = False
         with self.assertRaisesRegex(pre.ValidationError, "PUBLICATION_BLOCKED"):
-            build_site.build(current_results(), policy, mode="publication")
+            build_plan(current_results(), policy, mode="publication")
 
     def test_synthetic_preview_is_noindex_and_watermarked(self) -> None:
         completed = subprocess.run(
@@ -366,11 +443,56 @@ class ScraperSafetyTests(unittest.TestCase):
         changed["provenance"]["verifiedAt"] = "2099-01-01T00:00:00+08:00"
         self.assertEqual(scrape.semantic_view(original), scrape.semantic_view(changed))
 
-    def test_removing_dated_manual_verifications_is_a_material_change(self) -> None:
+    def test_removing_dated_manual_verifications_is_not_a_factual_change(self) -> None:
         reviewed = current_results()
         next_scrape = copy.deepcopy(reviewed)
         next_scrape["provenance"].pop("snapshotVerificationIds")
-        self.assertNotEqual(scrape.semantic_view(reviewed), scrape.semantic_view(next_scrape))
+        self.assertEqual(scrape.semantic_view(reviewed), scrape.semantic_view(next_scrape))
+        self.assertEqual(pre.result_facts_digest(reviewed), pre.result_facts_digest(next_scrape))
+
+    def test_new_candidate_provenance_never_carries_snapshot_verifications(self) -> None:
+        provenance = scrape.candidate_provenance(
+            reviewed_now(),
+            {"4d4d-co": "primary", "4dmoon-feedwest": "cross-check"},
+        )
+        self.assertNotIn("snapshotVerificationIds", provenance)
+        self.assertEqual(pre.EXPECTED_SOURCE_MAP, provenance["providerSources"])
+        self.assertEqual(
+            {"4d4d-co", "4dmoon-feedwest"},
+            set(provenance["sourcePayloadSha256"]),
+        )
+
+    def test_recent_dates_include_newest_cross_feed_provider_date(self) -> None:
+        values = ["23-08-2026 (Sun)", "22-08-2026 (Sat)"]
+        self.assertEqual(
+            ["24-08-2026 (Mon)", "23-08-2026 (Sun)", "22-08-2026 (Sat)"],
+            scrape.recent_dates_with_latest(values, "24-08-2026", "Mon"),
+        )
+
+    def test_source_response_size_is_bounded(self) -> None:
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.headers = {"Content-Length": str(scrape.MAX_SOURCE_BYTES + 1)}
+        with mock.patch.object(scrape.urllib.request, "urlopen", return_value=response):
+            with self.assertRaisesRegex(pre.ValidationError, "source response exceeds"):
+                scrape.fetch("https://example.test/results")
+
+        response = mock.MagicMock()
+        response.__enter__.return_value = response
+        response.headers = {}
+        response.read.return_value = b"x" * (scrape.MAX_SOURCE_BYTES + 1)
+        with mock.patch.object(scrape.urllib.request, "urlopen", return_value=response):
+            with self.assertRaisesRegex(pre.ValidationError, "source response exceeds"):
+                scrape.fetch("https://example.test/results")
+
+    def test_candidate_output_inside_repository_is_rejected(self) -> None:
+        args = Namespace(
+            baseline=REPO_ROOT / "results.json",
+            output=REPO_ROOT / "candidate-results.json",
+            status_output=REPO_ROOT / "candidate-status.json",
+        )
+        with self.assertRaisesRegex(pre.ValidationError, "outside the repository"):
+            scrape.validate_candidate_paths(args)
 
     def test_cross_source_mismatch_fails(self) -> None:
         results = current_results()
@@ -409,6 +531,276 @@ class ScraperSafetyTests(unittest.TestCase):
             target = Path(temporary) / "results.json"
             scrape.atomic_json_write(target, {"complete": True, "value": "1234"})
             self.assertEqual({"complete": True, "value": "1234"}, json.loads(target.read_text(encoding="utf-8")))
+
+    def test_candidate_cli_serializes_changed_status_without_touching_baseline(self) -> None:
+        baseline_bytes = (REPO_ROOT / "results.json").read_bytes()
+        candidate = current_results()
+        candidate["providers"]["magnum"]["first"] = "0000"
+        candidate["provenance"] = scrape.candidate_provenance(
+            reviewed_now(),
+            {"4d4d-co": "primary", "4dmoon-feedwest": "cross-check"},
+        )
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            output = temporary_root / "results.json"
+            status = temporary_root / "status.json"
+            with mock.patch.object(scrape, "collect_candidate", return_value=candidate):
+                return_code = scrape.run(
+                    [
+                        "--candidate",
+                        "--baseline",
+                        str(REPO_ROOT / "results.json"),
+                        "--output",
+                        str(output),
+                        "--status-output",
+                        str(status),
+                    ]
+                )
+            self.assertEqual(0, return_code)
+            serialized = json.loads(output.read_text(encoding="utf-8"))
+            serialized_status = json.loads(status.read_text(encoding="utf-8"))
+            self.assertEqual("0000", serialized["providers"]["magnum"]["first"])
+            self.assertNotIn("snapshotVerificationIds", serialized["provenance"])
+            self.assertTrue(serialized_status["changed"])
+            self.assertEqual("candidate-ready", serialized_status["state"])
+        self.assertEqual(baseline_bytes, (REPO_ROOT / "results.json").read_bytes())
+
+
+class CandidateArtifactTests(unittest.TestCase):
+    def changed_candidate(self) -> dict:
+        candidate = current_results()
+        for provider in candidate["providers"].values():
+            provider["drawDate"] = "24-08-2026"
+            provider["drawDay"] = "Mon"
+        candidate["drawDate"] = "24-08-2026"
+        candidate["drawDay"] = "Mon"
+        candidate["recentDates"] = ["24-08-2026 (Mon)", *candidate["recentDates"]]
+        candidate["updated"] = "2026-08-24 15:00 MYT"
+        candidate["provenance"] = scrape.candidate_provenance(
+            datetime(2026, 8, 24, 15, 0, tzinfo=pre.MYT),
+            {"4d4d-co": "primary", "4dmoon-feedwest": "cross-check"},
+        )
+        return candidate
+
+    def test_changed_candidate_packages_exact_bounded_review_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate_path = temporary_root / "candidate.json"
+            artifact_root = temporary_root / "artifact"
+            scrape.atomic_json_write(candidate_path, self.changed_candidate())
+            summary = package_candidate.package_candidate(
+                candidate_path=candidate_path,
+                baseline_path=REPO_ROOT / "results.json",
+                policy_path=TOOL_DIR / "provenance-policy.json",
+                output_root=artifact_root,
+                base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                now=reviewed_now(),
+            )
+            files = {
+                path.relative_to(artifact_root).as_posix()
+                for path in artifact_root.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(20, summary["fileCount"])
+            self.assertEqual(20, len(files))
+            self.assertEqual(package_candidate.METADATA_PATHS, files - {name for name in files if name.startswith("preview/")})
+            self.assertEqual(14, len([name for name in files if name.startswith("preview/")]))
+            self.assertIn("preview/index.html", files)
+            self.assertIn("preview/sitemap.xml", files)
+            self.assertIn("preview/results/2026-08-24/index.html", files)
+            self.assertIn("publicationApproved=false", (artifact_root / "READY").read_text(encoding="utf-8"))
+            blockers = json.loads((artifact_root / "publication-blockers.json").read_text(encoding="utf-8"))
+            self.assertEqual("blocked", blockers["status"])
+            self.assertTrue(any("live release approval" in value for value in blockers["blockers"]))
+            patch = (artifact_root / "changes.patch").read_text(encoding="utf-8")
+            self.assertIn("--- a/results.json", patch)
+            self.assertIn("+++ b/results.json", patch)
+
+    def test_unchanged_candidate_is_not_packaged(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate_path = temporary_root / "candidate.json"
+            candidate = current_results()
+            candidate["updated"] = "2026-08-24 15:00 MYT"
+            candidate["provenance"] = scrape.candidate_provenance(
+                datetime(2026, 8, 24, 15, 0, tzinfo=pre.MYT),
+                {"4d4d-co": "primary", "4dmoon-feedwest": "cross-check"},
+            )
+            scrape.atomic_json_write(candidate_path, candidate)
+            with self.assertRaisesRegex(pre.ValidationError, "no factual result change"):
+                package_candidate.package_candidate(
+                    candidate_path=candidate_path,
+                    baseline_path=REPO_ROOT / "results.json",
+                    policy_path=TOOL_DIR / "provenance-policy.json",
+                    output_root=temporary_root / "artifact",
+                    base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                    now=reviewed_now(),
+                )
+
+    def test_candidate_with_old_snapshot_verifications_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate = self.changed_candidate()
+            candidate["provenance"]["snapshotVerificationIds"] = [
+                "draw-2026-08-23-provider-owned-2026-08-24"
+            ]
+            candidate_path = temporary_root / "candidate.json"
+            scrape.atomic_json_write(candidate_path, candidate)
+            with self.assertRaisesRegex(pre.ValidationError, "snapshot-specific verification IDs"):
+                package_candidate.package_candidate(
+                    candidate_path=candidate_path,
+                    baseline_path=REPO_ROOT / "results.json",
+                    policy_path=TOOL_DIR / "provenance-policy.json",
+                    output_root=temporary_root / "artifact",
+                    base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                    now=reviewed_now(),
+                )
+
+    def test_candidate_cannot_regress_global_or_provider_draw_dates(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate = self.changed_candidate()
+            for provider in candidate["providers"].values():
+                provider["drawDate"] = "22-08-2026"
+                provider["drawDay"] = "Sat"
+            candidate["drawDate"] = "22-08-2026"
+            candidate["drawDay"] = "Sat"
+            candidate["recentDates"] = [
+                "22-08-2026 (Sat)",
+                "19-08-2026 (Wed)",
+                "16-08-2026 (Sun)",
+                "15-08-2026 (Sat)",
+                "12-08-2026 (Wed)",
+            ]
+            candidate_path = temporary_root / "candidate.json"
+            scrape.atomic_json_write(candidate_path, candidate)
+            with self.assertRaisesRegex(pre.ValidationError, "global draw date regresses"):
+                package_candidate.package_candidate(
+                    candidate_path=candidate_path,
+                    baseline_path=REPO_ROOT / "results.json",
+                    policy_path=TOOL_DIR / "provenance-policy.json",
+                    output_root=temporary_root / "artifact",
+                    base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                    now=reviewed_now(),
+                )
+
+    def test_oversized_candidate_is_rejected_before_parsing(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate_path = temporary_root / "candidate.json"
+            candidate_path.write_bytes(b"x" * (package_candidate.MAX_FILE_BYTES + 1))
+            with self.assertRaisesRegex(pre.ValidationError, "too large"):
+                package_candidate.package_candidate(
+                    candidate_path=candidate_path,
+                    baseline_path=REPO_ROOT / "results.json",
+                    policy_path=TOOL_DIR / "provenance-policy.json",
+                    output_root=temporary_root / "artifact",
+                    base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                    now=reviewed_now(),
+                )
+
+    def test_failed_final_validation_leaves_no_ready_artifact(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate_path = temporary_root / "candidate.json"
+            artifact_root = temporary_root / "artifact"
+            scrape.atomic_json_write(candidate_path, self.changed_candidate())
+            with mock.patch.object(
+                package_candidate,
+                "validate_artifact",
+                side_effect=pre.ValidationError("forced final validation failure"),
+            ):
+                with self.assertRaisesRegex(pre.ValidationError, "forced final validation failure"):
+                    package_candidate.package_candidate(
+                        candidate_path=candidate_path,
+                        baseline_path=REPO_ROOT / "results.json",
+                        policy_path=TOOL_DIR / "provenance-policy.json",
+                        output_root=artifact_root,
+                        base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                        now=reviewed_now(),
+                    )
+            self.assertFalse(artifact_root.exists())
+            self.assertFalse(any(temporary_root.glob("artifact.*.tmp")))
+
+    def test_artifact_checksum_tampering_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            temporary_root = Path(temporary)
+            candidate_path = temporary_root / "candidate.json"
+            artifact_root = temporary_root / "artifact"
+            scrape.atomic_json_write(candidate_path, self.changed_candidate())
+            package_candidate.package_candidate(
+                candidate_path=candidate_path,
+                baseline_path=REPO_ROOT / "results.json",
+                policy_path=TOOL_DIR / "provenance-policy.json",
+                output_root=artifact_root,
+                base_commit="6ae25b05eef6efdeedc353fa81e823835a2b31a9",
+                now=reviewed_now(),
+            )
+            (artifact_root / "manifest.json").write_text("tampered\n", encoding="utf-8")
+            expected = {
+                path.relative_to(artifact_root).as_posix()
+                for path in artifact_root.rglob("*")
+                if path.is_file()
+            }
+            with self.assertRaisesRegex(pre.ValidationError, "checksum mismatch"):
+                package_candidate.validate_artifact(artifact_root, expected)
+
+    def test_artifact_extra_file_and_size_limits_are_enforced(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            artifact_root = Path(temporary)
+            (artifact_root / "payload").write_bytes(b"12345")
+            (artifact_root / "checksums.sha256").write_text("", encoding="utf-8")
+            with self.assertRaisesRegex(pre.ValidationError, "allowlist mismatch"):
+                package_candidate.validate_artifact(artifact_root, {"checksums.sha256"})
+            with mock.patch.object(package_candidate, "MAX_FILE_BYTES", 4):
+                with self.assertRaisesRegex(pre.ValidationError, "exceeds 4 bytes"):
+                    package_candidate.validate_artifact(
+                        artifact_root,
+                        {"payload", "checksums.sha256"},
+                    )
+            with mock.patch.object(package_candidate, "MAX_FILE_BYTES", 1024), mock.patch.object(
+                package_candidate, "MAX_TOTAL_BYTES", 4
+            ):
+                with self.assertRaisesRegex(pre.ValidationError, "exceeds 4 total bytes"):
+                    package_candidate.validate_artifact(
+                        artifact_root,
+                        {"payload", "checksums.sha256"},
+                    )
+
+
+class WorkflowSafetyTests(unittest.TestCase):
+    def test_scheduled_workflow_is_staging_only_and_read_only(self) -> None:
+        workflow = (REPO_ROOT / ".github" / "workflows" / "update-results.yml").read_text(encoding="utf-8")
+        self.assertIn("contents: read", workflow)
+        self.assertIn("persist-credentials: false", workflow)
+        self.assertIn("${RUNNER_TEMP}", workflow)
+        self.assertIn("retention-days: 7", workflow)
+        self.assertIn('cron: "5 16 * * *"', workflow)
+        self.assertIn('[ "${SCHEDULE_EXPRESSION}" = "0 1 * * *" ]', workflow)
+        self.assertIn("git diff --exit-code", workflow)
+        self.assertIn('test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"', workflow)
+        self.assertRegex(workflow, r"actions/checkout@[0-9a-f]{40}")
+        self.assertRegex(workflow, r"actions/setup-python@[0-9a-f]{40}")
+        self.assertRegex(workflow, r"actions/upload-artifact@[0-9a-f]{40}")
+        for forbidden in (
+            "contents: write",
+            "git add",
+            "git commit",
+            "git push",
+            "git reset",
+            "git restore",
+            "git switch",
+            "git tag",
+            "--mode publication",
+            "secrets.",
+            "actions: write",
+            "pages: write",
+            "id-token: write",
+            "deploy-pages",
+            "upload-pages-artifact",
+            "gh api",
+        ):
+            self.assertNotIn(forbidden, workflow)
 
 
 if __name__ == "__main__":
