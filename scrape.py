@@ -7,6 +7,8 @@ Timestamp-only changes do not rewrite results.json.
 
 from __future__ import annotations
 
+import argparse
+import hashlib
 import json
 import os
 import re
@@ -28,6 +30,7 @@ SOURCE = "https://4d4d.co/"
 MOON_SOURCE = "https://www.4dmoon.com/feedwest.json"
 OUT = ROOT / "results.json"
 APPROVAL_ID = "OWNER-REPUBLISH-2026-08-24"
+MAX_SOURCE_BYTES = 2 * 1024 * 1024
 
 PROVIDER_KEYS = {
     "Damacai 4D": "damacai",
@@ -56,7 +59,13 @@ def fetch(url: str) -> str:
         headers={"User-Agent": "Mozilla/5.0 (compatible; 4dvip-results/2.0; +https://4dvip88.com/methodology.html)"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
-        return response.read().decode("utf-8", "replace")
+        content_length = response.headers.get("Content-Length")
+        if content_length and content_length.isdigit() and int(content_length) > MAX_SOURCE_BYTES:
+            raise pre.ValidationError(f"source response exceeds {MAX_SOURCE_BYTES} bytes")
+        payload = response.read(MAX_SOURCE_BYTES + 1)
+        if len(payload) > MAX_SOURCE_BYTES:
+            raise pre.ValidationError(f"source response exceeds {MAX_SOURCE_BYTES} bytes")
+        return payload.decode("utf-8", "replace")
 
 
 def clean(value: str | None) -> str:
@@ -283,16 +292,27 @@ def latest_provider_date(providers: dict[str, Any]) -> tuple[str, str]:
     return draw_date, draw_day
 
 
+def recent_dates_with_latest(values: Any, draw_date: str, draw_day: str) -> list[str]:
+    latest = f"{draw_date} ({draw_day})"
+    retained = [
+        value for value in (values if isinstance(values, list) else [])
+        if isinstance(value, str) and value != latest
+    ]
+    return [latest, *retained][:6]
+
+
 def semantic_view(data: dict[str, Any]) -> dict[str, Any]:
-    view = deepcopy(data)
-    view.pop("updated", None)
-    provenance = view.get("provenance")
-    if isinstance(provenance, dict):
-        provenance.pop("verifiedAt", None)
-    return view
+    """Return only factual result data used to decide if review is needed."""
+    return {
+        "drawDate": deepcopy(data.get("drawDate")),
+        "drawDay": deepcopy(data.get("drawDay")),
+        "recentDates": deepcopy(data.get("recentDates")),
+        "providers": deepcopy(data.get("providers")),
+    }
 
 
 def atomic_json_write(path: Path, data: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     payload = (json.dumps(data, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
     handle, temporary_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
     try:
@@ -306,35 +326,122 @@ def atomic_json_write(path: Path, data: dict[str, Any]) -> None:
             os.unlink(temporary_name)
 
 
-def main() -> int:
-    now = datetime.now(pre.MYT)
+def path_is_within(path: Path, parent: Path) -> bool:
     try:
-        data = parse(fetch(SOURCE))
-        moon = json.loads(fetch(MOON_SOURCE))
-        if not isinstance(moon, dict):
-            raise pre.ValidationError("cross-check feed is not a JSON object")
-        data["providers"]["gd4d"] = build_grand_dragon(moon)
-        cross_check(data["providers"], moon)
-        data["drawDate"], data["drawDay"] = latest_provider_date(data["providers"])
-        data["updated"] = now.strftime("%Y-%m-%d %H:%M MYT")
-        data["provenance"] = {
-            "approvalId": APPROVAL_ID,
-            "verifiedAt": now.isoformat(timespec="seconds"),
-            "providerSources": pre.EXPECTED_SOURCE_MAP,
-            "crossChecks": {"4dmoon-feedwest": list(CROSS_CHECKED_PROVIDER_KEYS)},
-        }
-        pre.validate_results_shape(data, now=now)
+        path.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return False
+    return True
 
-        previous = pre.read_json(OUT) if OUT.exists() else None
-        if previous is not None and semantic_view(previous) == semantic_view(data):
-            print(f"No material result change for draw {data['drawDate']}; results.json unchanged")
-            return 0
-        atomic_json_write(OUT, data)
-        print(f"Wrote {OUT.name} for draw {data['drawDate']} with {len(data['providers'])} providers")
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--candidate",
+        action="store_true",
+        required=True,
+        help="write a review candidate outside the repository; never alter the checkout",
+    )
+    parser.add_argument("--baseline", type=Path, required=True)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--status-output", type=Path, required=True)
+    return parser.parse_args(argv)
+
+
+def validate_candidate_paths(args: argparse.Namespace) -> tuple[Path, Path, Path]:
+    baseline = args.baseline.resolve()
+    output = args.output.resolve()
+    status_output = args.status_output.resolve()
+    if baseline != OUT.resolve():
+        raise pre.ValidationError("candidate baseline must be the checked-in results.json")
+    if path_is_within(output, ROOT) or path_is_within(status_output, ROOT):
+        raise pre.ValidationError("candidate output and status must be outside the repository")
+    if output == status_output:
+        raise pre.ValidationError("candidate output and status paths must be different")
+    return baseline, output, status_output
+
+
+def candidate_provenance(
+    now: datetime,
+    source_payloads: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    """Create new draw provenance without inheriting snapshot-specific checks."""
+    provenance = {
+        "approvalId": APPROVAL_ID,
+        "verifiedAt": now.isoformat(timespec="seconds"),
+        "providerSources": pre.EXPECTED_SOURCE_MAP,
+        "crossChecks": {"4dmoon-feedwest": list(CROSS_CHECKED_PROVIDER_KEYS)},
+    }
+    if source_payloads is not None:
+        provenance["sourcePayloadSha256"] = {
+            source_id: "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
+            for source_id, payload in sorted(source_payloads.items())
+        }
+    return provenance
+
+
+def collect_candidate(now: datetime) -> dict[str, Any]:
+    primary_payload = fetch(SOURCE)
+    cross_check_payload = fetch(MOON_SOURCE)
+    data = parse(primary_payload)
+    moon = json.loads(cross_check_payload)
+    if not isinstance(moon, dict):
+        raise pre.ValidationError("cross-check feed is not a JSON object")
+    data["providers"]["gd4d"] = build_grand_dragon(moon)
+    cross_check(data["providers"], moon)
+    data["drawDate"], data["drawDay"] = latest_provider_date(data["providers"])
+    data["recentDates"] = recent_dates_with_latest(
+        data.get("recentDates"),
+        data["drawDate"],
+        data["drawDay"],
+    )
+    data["updated"] = now.strftime("%Y-%m-%d %H:%M MYT")
+    data["provenance"] = candidate_provenance(
+        now,
+        {
+            "4d4d-co": primary_payload,
+            "4dmoon-feedwest": cross_check_payload,
+        },
+    )
+    pre.validate_results_shape(data, now=now)
+    return data
+
+
+def run(argv: list[str]) -> int:
+    try:
+        args = parse_args(argv)
+        baseline_path, output, status_output = validate_candidate_paths(args)
+        now = datetime.now(pre.MYT)
+        data = collect_candidate(now)
+        previous = pre.read_json(baseline_path)
+        baseline_digest = pre.result_facts_digest(previous)
+        candidate_digest = pre.result_facts_digest(data)
+        changed = baseline_digest != candidate_digest
+        atomic_json_write(output, data)
+        atomic_json_write(
+            status_output,
+            {
+                "schemaVersion": 1,
+                "state": "candidate-ready" if changed else "no-factual-change",
+                "changed": changed,
+                "drawDate": data["drawDate"],
+                "providerCount": len(data["providers"]),
+                "baselineFactsSha256": baseline_digest,
+                "candidateFactsSha256": candidate_digest,
+            },
+        )
+        if changed:
+            print(f"Prepared an external review candidate for draw {data['drawDate']}")
+        else:
+            print(f"No factual result change for draw {data['drawDate']}; checkout unchanged")
         return 0
     except (OSError, ValueError, json.JSONDecodeError, pre.ValidationError) as exc:
-        print(f"Refusing to overwrite {OUT.name}: {exc}", file=sys.stderr)
+        print(f"CANDIDATE_BLOCKED: {exc}", file=sys.stderr)
         return 1
+
+
+def main() -> int:
+    return run(sys.argv[1:])
 
 
 if __name__ == "__main__":
