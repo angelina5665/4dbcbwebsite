@@ -1,10 +1,10 @@
-name: Update 4D results
+name: Update verified 4D results
 
 on:
   schedule:
-    # every 15 minutes from 6pm to midnight Malaysia time (10:00-16:00 UTC)
+    # Every 15 minutes from 6pm to midnight Malaysia time (10:00-16:00 UTC).
     - cron: "*/15 10-16 * * *"
-    # one catch-up run each morning
+    # One catch-up run each morning.
     - cron: "0 1 * * *"
   workflow_dispatch:
 
@@ -25,17 +25,39 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch the latest results
+      - name: Run fail-closed pipeline tests
+        run: python -m unittest discover -s .github/seo-prerender/tests -p "test_*.py" -v
+
+      - name: Fetch and cross-check the latest completed results
         run: python scrape.py
 
-      - name: Publish if anything changed
+      - name: Build crawlable pages atomically
+        run: >-
+          python .github/seo-prerender/build_site.py
+          --mode publication
+          --results results.json
+          --policy .github/seo-prerender/provenance-policy.json
+
+      - name: Verify generated files are current
+        run: >-
+          python .github/seo-prerender/build_site.py
+          --mode publication
+          --results results.json
+          --policy .github/seo-prerender/provenance-policy.json
+          --check
+
+      - name: Publish only a material, validated result change
         run: |
-          if git diff --quiet results.json; then
-            echo "No change in results - nothing to publish."
+          git add results.json index.html sitemap.xml \
+            magnum-4d-results sports-toto-4d-results da-ma-cai-results \
+            sabah-88-4d-results special-cash-sweep-results sandakan-stc-4d-results \
+            west-malaysia-4d-results east-malaysia-4d-results \
+            past-results results 4d-prize-guide ms
+          if git diff --cached --quiet; then
+            echo "No material result or generated-page change. Nothing to publish."
             exit 0
           fi
-          git config user.name "4D VIP results bot"
+          git config user.name "4DVIP88 results bot"
           git config user.email "actions@github.com"
-          git add results.json
-          git commit -m "Update results $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git commit -m "Update verified results $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
