@@ -13,11 +13,12 @@ result numbers.
 2. a dated accuracy cross-check for the current completed snapshot; and
 3. live release approval.
 
-The checked-in third gate records the site owner's 24 August 2026 approval for
-the reviewed live Batch 2-3 release. Each source's `publicationAllowed` value is
-enabled for the fail-closed publication workflow. Merely having permission to
-reuse results is not treated as publishing approval, and the dated manual
-checks remain bound to the exact retained snapshot.
+The 24 August 2026 Batch 2-3 approval was consumed by production commit
+`6ae25b05eef6efdeedc353fa81e823835a2b31a9`. The checked-in third gate is reset
+to staging-only and each source's `publicationAllowed` value is false. Every
+later result snapshot needs separate explicit live approval bound to its exact
+snapshot digest. Permission to reuse results is not treated as publishing
+approval, and dated manual checks remain bound to the exact retained snapshot.
 
 ## Local staging build
 
@@ -45,9 +46,12 @@ python .github/seo-prerender/build_site.py `
 `scrape.py` requires all reviewed providers, exact number formats and counts,
 matching weekdays and related draw numbers, product-specific Sports Toto fields,
 and a seven-day freshness limit. It compares Magnum, Da Ma Cai and Sports Toto
-draw metadata and results between the two approved feeds. It writes atomically
-only when semantic result data changes. A timestamp-only check leaves
-`results.json` untouched.
+draw metadata and results between the two approved feeds. It writes a validated
+candidate only to an explicitly supplied path outside the repository. Factual
+comparison excludes volatile timestamps and approval metadata, so a
+timestamp-only or verification-ID-only change is not a new candidate.
+Each upstream response is capped at 2 MiB and only its SHA-256 digest is retained
+with the candidate; raw responses are not included in the review artifact.
 
 Grand Dragon and the remaining regional records do not yet have repeatable
 automated second-source coverage. The reviewed 23 August 2026 snapshot has
@@ -56,15 +60,30 @@ binding includes its date, draw number where available, source URLs and a
 canonical result digest. `results.json` opts into those records through
 `snapshotVerificationIds`.
 
-The scraper deliberately does not carry those IDs into its next output. Their
-removal is a semantic change, so a future snapshot cannot inherit a dated
-manual check. Publication mode still requires a valid independent check for
-every provider plus explicit live-release approval.
+The scraper deliberately does not carry those IDs into its next output, so a
+future snapshot cannot inherit a dated manual check. Publication mode still
+requires a valid independent check for every provider plus explicit
+live-release approval for the exact snapshot.
 
-The scheduled workflow intentionally uses `--mode publication`. The reviewed
-snapshot has live-release approval, but a future changed snapshot loses the
-dated manual verification IDs and remains fail-closed until all required
-provider checks are satisfied again.
+The scheduled workflow has read-only repository permission and disables
+checkout credentials. It runs tests, writes candidates only under the runner's
+temporary directory and, for a factual change, uploads a bounded staging-only
+review artifact retained for seven days. Frequent checks do not upload; packaging
+is limited to the post-draw and morning catch-up schedules, plus an explicit
+manual run. The workflow does not build in publication mode, commit, push,
+deploy, submit indexing or alter the checkout.
+
+## Candidate review artifact
+
+The artifact contains the candidate `results.json`, an exact unified diff,
+publication blockers, a manifest, checksums, a `READY` marker and 14 static-page
+previews. Its allowlist is capped at 25 files, 1 MiB per file and 5 MiB total.
+The packer refuses a candidate with no factual change, any path inside the
+repository, a symlink, an unexpected file or a candidate that fails staging
+policy. It also rejects inherited snapshot-specific checks, missing source
+payload hashes and any global or provider date regression. Files are assembled
+and validated in a temporary directory, the `READY` marker is written last, and
+the complete directory is atomically moved into place.
 
 ## Generated public routes
 

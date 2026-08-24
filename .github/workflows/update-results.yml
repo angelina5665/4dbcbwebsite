@@ -1,63 +1,101 @@
-name: Update verified 4D results
+name: Prepare verified 4D result candidate
 
 on:
   schedule:
     # Every 15 minutes from 6pm to midnight Malaysia time (10:00-16:00 UTC).
     - cron: "*/15 10-16 * * *"
+    # Package one scheduled review artifact after the draw window.
+    - cron: "5 16 * * *"
     # One catch-up run each morning.
     - cron: "0 1 * * *"
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: update-results
+  group: prepare-result-candidate
   cancel-in-progress: false
 
 jobs:
-  update:
+  prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out the reviewed production commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v5
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
+
+      - name: Prove the checkout starts clean
+        shell: bash
+        run: |
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          git rev-parse HEAD
 
       - name: Run fail-closed pipeline tests
         run: python -m unittest discover -s .github/seo-prerender/tests -p "test_*.py" -v
 
-      - name: Fetch and cross-check the latest completed results
-        run: python scrape.py
-
-      - name: Build crawlable pages atomically
-        run: >-
-          python .github/seo-prerender/build_site.py
-          --mode publication
-          --results results.json
-          --policy .github/seo-prerender/provenance-policy.json
-
-      - name: Verify generated files are current
-        run: >-
-          python .github/seo-prerender/build_site.py
-          --mode publication
-          --results results.json
-          --policy .github/seo-prerender/provenance-policy.json
-          --check
-
-      - name: Publish only a material, validated result change
+      - name: Fetch and cross-check an external candidate
+        id: fetch
+        shell: bash
+        env:
+          SCHEDULE_EXPRESSION: ${{ github.event.schedule }}
         run: |
-          git add results.json index.html sitemap.xml \
-            magnum-4d-results sports-toto-4d-results da-ma-cai-results \
-            sabah-88-4d-results special-cash-sweep-results sandakan-stc-4d-results \
-            west-malaysia-4d-results east-malaysia-4d-results \
-            past-results results 4d-prize-guide ms
-          if git diff --cached --quiet; then
-            echo "No material result or generated-page change. Nothing to publish."
-            exit 0
+          candidate_root="${RUNNER_TEMP}/4dvip88-candidate"
+          mkdir -p "${candidate_root}"
+          python scrape.py \
+            --candidate \
+            --baseline "${GITHUB_WORKSPACE}/results.json" \
+            --output "${candidate_root}/results.json" \
+            --status-output "${candidate_root}/status.json"
+          changed="$(python -c 'import json,sys; print(str(json.load(open(sys.argv[1], encoding="utf-8"))["changed"]).lower())' "${candidate_root}/status.json")"
+          echo "changed=${changed}" >> "${GITHUB_OUTPUT}"
+          package="false"
+          if [ "${changed}" = "true" ] && { [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ] || [ "${SCHEDULE_EXPRESSION}" = "5 16 * * *" ] || [ "${SCHEDULE_EXPRESSION}" = "0 1 * * *" ]; }; then
+            package="true"
           fi
-          git config user.name "4DVIP88 results bot"
-          git config user.email "actions@github.com"
-          git commit -m "Update verified results $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+          echo "package=${package}" >> "${GITHUB_OUTPUT}"
+
+      - name: Package a staging-only review artifact
+        if: steps.fetch.outputs.package == 'true'
+        run: >-
+          python .github/seo-prerender/package_candidate.py
+          --candidate "${{ runner.temp }}/4dvip88-candidate/results.json"
+          --baseline "${{ github.workspace }}/results.json"
+          --policy "${{ github.workspace }}/.github/seo-prerender/provenance-policy.json"
+          --output "${{ runner.temp }}/4dvip88-review"
+          --base-commit "${{ github.sha }}"
+
+      - name: Prove candidate preparation preserved the exact checkout
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload the bounded review artifact
+        if: steps.fetch.outputs.package == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: 4dvip88-result-candidate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/4dvip88-review
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Prove the checkout was never changed
+        if: always()
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
