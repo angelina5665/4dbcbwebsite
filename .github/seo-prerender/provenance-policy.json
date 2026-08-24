@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "rightsApproval": {
     "status": "confirmed",
     "approvalId": "OWNER-REPUBLISH-2026-08-24",
@@ -124,11 +124,12 @@
     }
   },
   "releaseApproval": {
-    "status": "approved",
-    "approvalId": "OWNER-LIVE-BATCH23-2026-08-24",
-    "approvedAt": "2026-08-24T17:05:00+08:00",
-    "evidence": "The site owner explicitly approved the live Batch 2-3 release for 4dvip88.com in the SEO task on 24 August 2026 and excluded GA4.",
-    "reason": "Publish the reviewed Batch 2-3 snapshot through the existing fail-closed GitHub Pages workflow."
+    "status": "staging-only",
+    "approvalId": null,
+    "approvedAt": null,
+    "resultsSha256": null,
+    "evidence": "The 24 August 2026 Batch 2-3 live approval was consumed by production commit 6ae25b05eef6efdeedc353fa81e823835a2b31a9. It does not authorize a later result snapshot.",
+    "reason": "Each changed result snapshot requires a separate explicit live approval bound to its exact snapshot digest."
   },
   "sources": [
     {
@@ -139,7 +140,7 @@
       "reusePermission": "confirmed",
       "reuseEvidence": "OWNER-REPUBLISH-2026-08-24",
       "stagingAllowed": true,
-      "publicationAllowed": true
+      "publicationAllowed": false
     },
     {
       "sourceId": "4dmoon-feedwest",
@@ -149,7 +150,7 @@
       "reusePermission": "confirmed",
       "reuseEvidence": "OWNER-REPUBLISH-2026-08-24",
       "stagingAllowed": true,
-      "publicationAllowed": true
+      "publicationAllowed": false
     }
   ]
 }
