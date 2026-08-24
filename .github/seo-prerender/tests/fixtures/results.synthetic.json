@@ -1,0 +1,19 @@
+{
+  "_fixture": {
+    "synthetic": true,
+    "watermark": "SYNTHETIC TEST DATA - NOT FOR PUBLICATION"
+  },
+  "drawDate": "TEST-DATE",
+  "drawDay": "TEST-DAY",
+  "updated": "TEST-TIMESTAMP",
+  "providers": {
+    "synthetic-provider": {
+      "name": "Synthetic Provider - Test Only",
+      "first": "TEST-1",
+      "second": "TEST-2",
+      "third": "TEST-3",
+      "special": ["TEST-S1", "TEST-S2"],
+      "consolation": ["TEST-C1", "TEST-C2"]
+    }
+  }
+}
