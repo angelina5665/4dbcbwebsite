@@ -1,6 +1,4 @@
 {
- "drawDate": "23-08-2026",
- "drawDay": "Sun",
  "recentDates": [
   "23-08-2026 (Sun)",
   "22-08-2026 (Sat)",
@@ -9,7 +7,6 @@
   "15-08-2026 (Sat)",
   "12-08-2026 (Wed)"
  ],
- "updated": "2026-08-24 20:03 MYT",
  "providers": {
   "damacai": {
    "name": "Damacai 4D",
@@ -421,40 +418,70 @@
   },
   "gd4d": {
    "name": "Grand Dragon 4D",
-   "drawDay": "Mon",
-   "drawDate": "24-08-2026",
-   "first": "8307",
-   "second": "4716",
-   "third": "7295",
+   "first": "9870",
+   "second": "9445",
+   "third": "3927",
+   "drawDay": "Sun",
+   "drawDate": "23-08-2026",
    "special": [
-    "3784",
-    "5243",
-    "0113",
+    "4042",
     "----",
-    "0802",
-    "8039",
-    "0943",
-    "0011",
-    "1217",
-    "0560",
-    "",
+    "9231",
+    "3030",
+    "2277",
+    "7170",
+    "6318",
+    "3176",
+    "6025",
     "----",
-    "----",
-    "6039",
-    ""
+    "9383",
+    "7932",
+    "----"
    ],
    "consolation": [
-    "8992",
-    "1084",
-    "9974",
-    "6385",
-    "4442",
-    "1284",
-    "1813",
-    "6291",
-    "4103",
-    "8885"
+    "3127",
+    "2317",
+    "3331",
+    "3483",
+    "1667",
+    "6811",
+    "0022",
+    "2746",
+    "4588",
+    "8944"
    ]
   }
+ },
+ "drawDate": "23-08-2026",
+ "drawDay": "Sun",
+ "updated": "2026-08-24 14:23 MYT",
+ "provenance": {
+  "approvalId": "OWNER-REPUBLISH-2026-08-24",
+  "verifiedAt": "2026-08-24T14:23:30+08:00",
+  "providerSources": {
+   "damacai": "4d4d-co",
+   "magnum": "4d4d-co",
+   "toto": "4d4d-co",
+   "totoextra": "4d4d-co",
+   "damacai13d": "4d4d-co",
+   "singapore": "4d4d-co",
+   "sabah88": "4d4d-co",
+   "sandakan": "4d4d-co",
+   "cashsweep": "4d4d-co",
+   "gd4d": "4dmoon-feedwest"
+  },
+  "crossChecks": {
+   "4dmoon-feedwest": [
+    "magnum",
+    "damacai",
+    "damacai13d",
+    "toto",
+    "totoextra"
+   ]
+  },
+  "snapshotVerificationIds": [
+   "draw-2026-08-23-provider-owned-2026-08-24",
+   "draw-2026-08-23-grand-dragon-2026-08-24"
+  ]
  }
 }
