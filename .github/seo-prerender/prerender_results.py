@@ -26,7 +26,7 @@ GENERATED_ROOT = (TOOL_DIR / "generated").resolve()
 SYNTHETIC_ROOT = (TOOL_DIR / "tests" / "generated").resolve()
 SYNTHETIC_WATERMARK = "SYNTHETIC TEST DATA - NOT FOR PUBLICATION"
 MYT = timezone(timedelta(hours=8))
-POLICY_SCHEMA_VERSION = 3
+POLICY_SCHEMA_VERSION = 4
 VERIFICATION_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{7,127}")
 
 REQUIRED_PROVIDERS = (
@@ -127,6 +127,33 @@ def provider_result_digest(provider_key: str, provider: Any) -> str:
     """Bind a dated manual check to one exact provider result object."""
     payload = json.dumps(
         {"provider": provider_key, "result": provider},
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def result_facts_digest(results: dict[str, Any]) -> str:
+    """Hash user-visible result facts without volatile provenance timestamps."""
+    payload = json.dumps(
+        {
+            "drawDate": results.get("drawDate"),
+            "drawDay": results.get("drawDay"),
+            "recentDates": results.get("recentDates"),
+            "providers": results.get("providers"),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(payload).hexdigest()
+
+
+def results_snapshot_digest(results: dict[str, Any]) -> str:
+    """Bind live approval to every field of one exact validated snapshot."""
+    payload = json.dumps(
+        results,
         ensure_ascii=False,
         sort_keys=True,
         separators=(",", ":"),
@@ -364,11 +391,21 @@ def validate_results_shape(
         raise ValidationError("recentDates contains duplicates")
     if parsed_recent != sorted(parsed_recent, reverse=True):
         raise ValidationError("recentDates is not newest first")
+    if parsed_recent[0].date() != global_date.date():
+        raise ValidationError("recentDates newest entry does not match global drawDate")
 
 
-def policy_blockers(policy: dict[str, Any], results: dict[str, Any], *, mode: str) -> list[str]:
+def policy_blockers(
+    policy: dict[str, Any],
+    results: dict[str, Any],
+    *,
+    mode: str,
+    now: datetime | None = None,
+) -> list[str]:
     blockers: list[str] = []
-    reference_now = datetime.now(MYT)
+    reference_now = now or datetime.now(MYT)
+    if reference_now.tzinfo is None or reference_now.utcoffset() is None:
+        reference_now = reference_now.replace(tzinfo=MYT)
     if policy.get("schemaVersion") != POLICY_SCHEMA_VERSION:
         blockers.append(f"policy schemaVersion must be {POLICY_SCHEMA_VERSION}")
     rights = policy.get("rightsApproval")
@@ -630,11 +667,24 @@ def policy_blockers(policy: dict[str, Any], results: dict[str, Any], *, mode: st
         for field in ("approvalId", "evidence"):
             if not isinstance(release.get(field), str) or not release[field].strip():
                 blockers.append(f"releaseApproval {field} is missing")
+        expected_snapshot_digest = release.get("resultsSha256")
+        if not isinstance(expected_snapshot_digest, str) or re.fullmatch(r"sha256:[0-9a-f]{64}", expected_snapshot_digest) is None:
+            blockers.append("releaseApproval resultsSha256 is missing or invalid")
+        elif expected_snapshot_digest != results_snapshot_digest(results):
+            blockers.append("releaseApproval resultsSha256 does not match the result snapshot")
         release_time = parse_iso_datetime(release.get("approvedAt"))
         if release_time is None:
             blockers.append("releaseApproval approvedAt is missing or invalid")
         elif release_time > reference_now + MAX_CLOCK_SKEW:
             blockers.append("releaseApproval approvedAt is in the future")
+        else:
+            try:
+                updated_at = parse_updated(results.get("updated"))
+            except ValidationError:
+                pass
+            else:
+                if release_time.astimezone(MYT) < updated_at:
+                    blockers.append("releaseApproval predates the result snapshot")
     elif mode == "staging" and isinstance(release, dict) and release.get("status") not in ("staging-only", "approved"):
         blockers.append("releaseApproval does not permit staging")
 
