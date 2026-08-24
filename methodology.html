@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en-MY">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Methodology and Sources | 4DVIP88</title>
+<meta name="description" content="How 4DVIP88 imports, cross-checks and displays result information, what its timestamps mean, and how stale or corrected data is handled.">
+<link rel="canonical" href="https://4dvip88.com/methodology.html">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","@id":"https://4dvip88.com/methodology.html#webpage","url":"https://4dvip88.com/methodology.html","name":"Methodology and Sources | 4DVIP88","description":"How 4DVIP88 imports, cross-checks and displays result information, what its timestamps mean, and how stale or corrected data is handled.","inLanguage":"en-MY","isPartOf":{"@id":"https://4dvip88.com/#website"}}</script>
+<style>
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}body{margin:0;background:#f6f7f9;color:#212529;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;line-height:1.65}.site-header{background:#fff;border-bottom:1px solid #e2e5e9}.bar{max-width:900px;margin:0 auto;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;gap:18px}.brand{color:#d71920;font-size:23px;font-weight:800;text-decoration:none;min-width:44px;min-height:44px;display:inline-flex;align-items:center;padding:6px 8px}.home{color:#495057;text-decoration:none;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:8px}main{max-width:900px;margin:32px auto;padding:0 20px}article{background:#fff;border:1px solid #e2e5e9;border-radius:10px;padding:34px;box-shadow:0 4px 18px rgba(0,0,0,.05)}h1{font-size:34px;line-height:1.2;margin:0 0 8px}h2{font-size:22px;line-height:1.3;margin:30px 0 8px}p,li{max-width:74ch}.effective{color:#6c757d;margin:0 0 26px}.warning{background:#fff8e1;border-left:4px solid #e0a800;padding:12px 16px}code{overflow-wrap:anywhere}footer{max-width:900px;margin:0 auto;padding:10px 20px 32px;color:#626970}footer nav{display:flex;gap:18px;flex-wrap:wrap}footer a{color:#495057;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:8px}@media(max-width:560px){article{padding:24px}h1{font-size:29px}.bar{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header class="site-header"><div class="bar"><a class="brand" href="/">4DVIP88</a><a class="home" href="/">Home</a></div></header>
+<main>
+<article>
+  <h1>Methodology &amp; Sources</h1>
+  <p class="effective"><strong>Page updated:</strong> 24 August 2026</p>
+
+  <h2>Current display process</h2>
+  <ol>
+    <li>A scheduled script requests result information from two authorised third-party aggregation endpoints.</li>
+    <li>It requires the complete reviewed provider set and cross-checks Magnum, Da Ma Cai and Sports Toto fields between the feeds, including draw metadata and Sports Toto extended results.</li>
+    <li>For the retained 23 August 2026 snapshot, the remaining providers were checked on provider-owned or operator-family surfaces and separate dated publishers. Each manual record is bound to the exact provider object with its draw date, draw number where available and a SHA-256 digest.</li>
+    <li>Exact number lengths, result counts, weekdays, related draw numbers, product-specific fields and a seven-day freshness limit must pass before <code>results.json</code> can be replaced atomically.</li>
+    <li>The same validated snapshot generates crawlable homepage, provider and regional HTML. A dated archive includes only provider records whose own draw date matches its URL. Browser JavaScript is progressive enhancement; a JSON failure leaves the last generated result visible.</li>
+    <li>A timestamp-only check does not rewrite the data file or trigger a deployment.</li>
+  </ol>
+
+  <h2>Current upstreams and authorisation</h2>
+  <p>The code requests <code>https://4d4d.co/</code> and <code>https://www.4dmoon.com/feedwest.json</code>. On 24 August 2026, the site owner confirmed that leadership had obtained permission to republish the result information. No private approver identity or credential is stored in the website repository.</p>
+  <p>These remain third-party aggregation sources. Permission to republish does not make either source an official provider feed, establish provider endorsement or guarantee future accuracy.</p>
+  <p class="warning"><strong>Verification warning:</strong> a recent timestamp does not independently prove that a number is accurate, complete or final. Check important information directly with the relevant provider.</p>
+
+  <h2>Current verification record</h2>
+  <p>The generated data records a dated approval identifier, verification time, source mapping and the exact providers included in an automated cross-check. The 24 August 2026 staging review found agreement across the authorised feeds for Magnum, Da Ma Cai and Sports Toto. Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools matched provider-owned and separate dated pages. Grand Dragon matched operator-family surfaces and two separate dated publishers; their undisclosed upstream lineage cannot be proven from public pages alone.</p>
+  <p>Those manual records apply only to the exact 23 August snapshot and are deliberately removed by the next accepted scrape. Grand Dragon and the regional records still do not have repeatable automated second-source coverage.</p>
+  <p>The site owner approved live publication of the reviewed Batch 2-3 snapshot on 24 August 2026. The checked-in policy permits the approved sources only through the fail-closed publication mode. Dated manual verification remains bound to this exact snapshot and does not carry forward to a future changed draw.</p>
+
+  <h2>Corrections and stale data</h2>
+  <p>If either source is unavailable, a required provider is missing, compared sources disagree, or a date or number fails validation, the import refuses to overwrite the last-known-good snapshot. The automated job regenerates only the newest completed draw. Correcting an older retained archive requires verified retained source data and a dated manual rebuild of its existing URL rather than a duplicate page.</p>
+
+  <h2>Publication standard</h2>
+  <p>Result pages must add useful context, clear freshness information, internal navigation and correction handling. Dated archives are created only for completed snapshots actually retained by the site. The site does not create empty future dates, spelling-variant doorways or mass-produced provider-and-date combinations.</p>
+</article>
+</main>
+<footer><nav aria-label="Footer"><a href="/">Home</a><a href="/about.html">About</a><a href="/privacy.html">Privacy</a><a href="/disclaimer.html">Disclaimer</a><a href="/affiliate-disclosure.html">Affiliate Disclosure</a><a href="/sitemap.xml">Sitemap</a></nav></footer>
+</body>
+</html>
