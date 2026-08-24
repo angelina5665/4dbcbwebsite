@@ -543,9 +543,15 @@ def sitemap_document(paths: list[tuple[str, str]]) -> str:
     return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "\n".join(rows) + "\n</urlset>\n"
 
 
-def build(results: dict[str, Any], policy: dict[str, Any], *, mode: str) -> dict[Path, str]:
-    pre.validate_results_shape(results)
-    blockers = pre.policy_blockers(policy, results, mode=mode)
+def build(
+    results: dict[str, Any],
+    policy: dict[str, Any],
+    *,
+    mode: str,
+    now: datetime | None = None,
+) -> dict[Path, str]:
+    pre.validate_results_shape(results, now=now)
+    blockers = pre.policy_blockers(policy, results, mode=mode, now=now)
     if blockers:
         raise pre.ValidationError(mode.upper() + "_BLOCKED: " + "; ".join(blockers))
 
