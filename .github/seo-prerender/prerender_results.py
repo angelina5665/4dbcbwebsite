@@ -26,7 +26,7 @@ GENERATED_ROOT = (TOOL_DIR / "generated").resolve()
 SYNTHETIC_ROOT = (TOOL_DIR / "tests" / "generated").resolve()
 SYNTHETIC_WATERMARK = "SYNTHETIC TEST DATA - NOT FOR PUBLICATION"
 MYT = timezone(timedelta(hours=8))
-POLICY_SCHEMA_VERSION = 4
+POLICY_SCHEMA_VERSION = 5
 VERIFICATION_ID_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{7,127}")
 
 REQUIRED_PROVIDERS = (
@@ -470,6 +470,10 @@ def policy_blockers(
     if not isinstance(provenance, dict):
         blockers.append("results provenance object is missing")
         return blockers
+    if mode == "publication" and provenance.get("snapshotVerificationIds"):
+        blockers.append(
+            "results snapshotVerificationIds is not permitted for release-scoped publication"
+        )
     if provenance.get("approvalId") != rights.get("approvalId"):
         blockers.append("results approvalId does not match the rights approval")
     verified_at = parse_iso_datetime(provenance.get("verifiedAt"))
@@ -508,22 +512,31 @@ def policy_blockers(
             else:
                 independently_checked.update(expected_providers)
 
+    verification_reference = "results"
     requested_verification_ids = provenance.get("snapshotVerificationIds", [])
+    if mode == "publication":
+        verification_reference = "releaseApproval"
+        requested_verification_ids = (
+            release.get("snapshotVerificationIds") if isinstance(release, dict) else None
+        )
     if not isinstance(requested_verification_ids, list) or any(
         not isinstance(value, str) or not VERIFICATION_ID_PATTERN.fullmatch(value)
         for value in requested_verification_ids
-    ):
-        blockers.append("results snapshotVerificationIds is not a valid ID list")
+    ) or (mode == "publication" and not requested_verification_ids):
+        blockers.append(f"{verification_reference} snapshotVerificationIds is not a valid ID list")
         requested_verification_ids = []
     elif len(requested_verification_ids) != len(set(requested_verification_ids)):
-        blockers.append("results snapshotVerificationIds contains duplicates")
+        blockers.append(f"{verification_reference} snapshotVerificationIds contains duplicates")
         requested_verification_ids = []
 
     verified_snapshot_providers: set[str] = set()
+    latest_verification_time: datetime | None = None
     for verification_id in requested_verification_ids:
         verification = snapshot_verifications.get(verification_id)
         if not isinstance(verification, dict):
-            blockers.append(f"results references unknown snapshot verification {verification_id}")
+            blockers.append(
+                f"{verification_reference} references unknown snapshot verification {verification_id}"
+            )
             continue
         verification_valid = True
         checked_at = parse_iso_datetime(verification.get("checkedAt"))
@@ -534,14 +547,13 @@ def policy_blockers(
             blockers.append(f"snapshot verification {verification_id} checkedAt is in the future")
             verification_valid = False
         else:
-            try:
-                updated_at = parse_updated(results.get("updated"))
-            except ValidationError:
+            if latest_verification_time is None or checked_at > latest_verification_time:
+                latest_verification_time = checked_at
+            if accuracy_time is not None and checked_at > accuracy_time:
+                blockers.append(
+                    f"snapshot verification {verification_id} postdates the accuracy review"
+                )
                 verification_valid = False
-            else:
-                if checked_at.astimezone(MYT) < updated_at:
-                    blockers.append(f"snapshot verification {verification_id} predates the result snapshot")
-                    verification_valid = False
 
         if verification.get("method") not in {
             "provider-owned-plus-independent",
@@ -583,6 +595,17 @@ def policy_blockers(
                 if binding.get("resultSha256") != provider_result_digest(provider_key, provider):
                     blockers.append(f"snapshot verification {verification_id} digest does not match {provider_key}")
                     provider_valid = False
+                if checked_at is not None:
+                    try:
+                        provider_draw_date = parse_draw_date(provider.get("drawDate"))
+                    except ValidationError:
+                        provider_valid = False
+                    else:
+                        if checked_at.astimezone(MYT).date() < provider_draw_date.date():
+                            blockers.append(
+                                f"snapshot verification {verification_id} predates the {provider_key} draw"
+                            )
+                            provider_valid = False
 
             evidence_sources = binding.get("evidenceSources")
             source_urls: set[str] = set()
@@ -683,7 +706,14 @@ def policy_blockers(
             except ValidationError:
                 pass
             else:
-                if release_time.astimezone(MYT) < updated_at:
+                snapshot_time = updated_at
+                if verified_at is not None:
+                    snapshot_time = max(snapshot_time, verified_at.astimezone(MYT))
+                if latest_verification_time is not None:
+                    snapshot_time = max(snapshot_time, latest_verification_time.astimezone(MYT))
+                if accuracy_time is not None:
+                    snapshot_time = max(snapshot_time, accuracy_time.astimezone(MYT))
+                if release_time.astimezone(MYT) < snapshot_time:
                     blockers.append("releaseApproval predates the result snapshot")
     elif mode == "staging" and isinstance(release, dict) and release.get("status") not in ("staging-only", "approved"):
         blockers.append("releaseApproval does not permit staging")
@@ -759,9 +789,9 @@ def render_results_fragment(results: dict[str, Any]) -> str:
         ("Additional result reference", ("singapore",)),
     )
     lines = ['<section class="prerendered-results" aria-labelledby="results-heading">']
-    lines.append('  <h2 id="results-heading">Latest completed 4D results</h2>')
+    lines.append('  <h2 id="results-heading">Latest published 4D result snapshot</h2>')
     lines.append(
-        f'  <p class="result-status">Latest recorded draw date: {esc(results["drawDate"])}. '
+        f'  <p class="result-status">Most recent recorded date in this published snapshot: {esc(results["drawDate"])}. '
         f'Data file updated {esc(results["updated"])}. Verify important results with the relevant provider.</p>'
     )
     rendered_keys: set[str] = set()

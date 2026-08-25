@@ -301,10 +301,12 @@ def page_document(
     return "\n".join(line.rstrip() for line in document.splitlines()) + "\n"
 
 
-def result_status(results: dict[str, Any]) -> str:
+def result_status(results: dict[str, Any], keys: Iterable[str]) -> str:
+    shown = [results["providers"][key] for key in keys]
+    latest = max(shown, key=lambda provider: datetime.strptime(provider["drawDate"], "%d-%m-%Y"))
     return (
         '<div class="status-box">'
-        f'<p><strong>Latest recorded draw:</strong> {esc(results["drawDate"])} ({esc(results["drawDay"])})</p>'
+        f'<p><strong>Most recent provider draw shown:</strong> {esc(latest["drawDate"])} ({esc(latest["drawDay"])})</p>'
         f'<p><strong>Data file updated:</strong> {esc(results["updated"])}</p>'
         '<p>Use this as a reference and verify important results with the relevant provider.</p>'
         '</div>'
@@ -312,9 +314,10 @@ def result_status(results: dict[str, Any]) -> str:
 
 
 def result_grid(results: dict[str, Any], keys: Iterable[str], heading: str) -> str:
+    keys = tuple(keys)
     return (
         '<section class="content-card">'
-        f'<h2>{esc(heading)}</h2>{result_status(results)}'
+        f'<h2>{esc(heading)}</h2>{result_status(results, keys)}'
         f'<div class="results-grid">{pre.render_cards(results, keys)}</div>'
         '</section>'
     )
@@ -406,7 +409,7 @@ def past_results_page(dates: list[str]) -> str:
     body = (
         '<section class="content-card"><h2>Available completed draw archives</h2>'
         f'<ul class="archive-list">{links}</ul>'
-        '<p>The archive begins with result snapshots actually retained by this website. Only one dated page is listed at present because 4DVIP88 does not invent earlier records from dates alone.</p>'
+        '<p>The archive includes only result snapshots actually retained by this website; 4DVIP88 does not invent earlier records from dates alone.</p>'
         '<h2>What a dated archive contains</h2>'
         '<p>Each archive URL represents one completed draw date and includes only provider records carrying that same date. Providers can follow different schedules, so an older provider record is not relabelled to make a date page look more complete.</p>'
         '<p>The page preserves the provider name, its draw date, available draw number and the result categories stored in the verified snapshot. The date in the URL describes the draw; the separate update timestamp records when the retained website file changed.</p>'
@@ -512,10 +515,10 @@ def malay_page(results: dict[str, Any]) -> str:
     updated = malay_updated(results["updated"])
     body = f"""
 <section class="content-card">
-  <h2>Semak keputusan 4D terkini</h2>
-  <p>Jika anda mencari keputusan 4D hari ini, semak tarikh cabutan yang dipaparkan terlebih dahulu. Halaman ini menunjukkan keputusan lengkap terkini yang tersedia, bukan keputusan masa nyata atau jaminan bahawa setiap penyedia mempunyai cabutan pada hari yang sama.</p>
+  <h2>Snapshot keputusan 4D terkini yang diterbitkan</h2>
+  <p>Jika anda mencari keputusan 4D hari ini, semak tarikh cabutan yang dipaparkan terlebih dahulu. Halaman ini menunjukkan snapshot terakhir yang telah disemak dan diterbitkan oleh 4DVIP88, bukan keputusan masa nyata atau jaminan bahawa setiap penyedia mempunyai cabutan pada hari yang sama.</p>
   <p>Keputusan Sports Toto, Magnum 4D, Da Ma Cai, Grand Dragon, Sabah 88, Sandakan STC dan Special Cash Sweep dipaparkan mengikut penyedia dan tarikh cabutan masing-masing.</p>
-  <div class="status-box"><p><strong>Tarikh cabutan terkini:</strong> {esc(draw_date)}</p><p><strong>Masa kemas kini data:</strong> {esc(updated)}</p></div>
+  <div class="status-box"><p><strong>Tarikh terkini dalam snapshot diterbitkan:</strong> {esc(draw_date)}</p><p><strong>Masa kemas kini data:</strong> {esc(updated)}</p></div>
   <div class="results-grid">{cards}</div>
   <h2>Cara membaca keputusan</h2>
   <p>Pastikan nama penyedia dan tarikh cabutan sepadan sebelum membandingkan nombor. Hadiah pertama, kedua, ketiga, khas dan saguhati ialah kategori yang berbeza. Sifar di hadapan nombor perlu dikekalkan.</p>
@@ -527,10 +530,10 @@ def malay_page(results: dict[str, Any]) -> str:
   <p class="language-switch"><a href="/" hreflang="en-MY">Lihat halaman ini dalam bahasa Inggeris</a></p>
 </section>"""
     return page_document(
-        title="Keputusan 4D Terkini di Malaysia | 4DVIP88",
-        description="Semak keputusan 4D terkini untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia 4D lain di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
-        path="/ms/", h1="Keputusan 4D Terkini di Malaysia",
-        lead="Semak keputusan lengkap terkini yang tersedia untuk penyedia 4D utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
+        title="Keputusan 4D Malaysia | Snapshot Terkini Diterbitkan | 4DVIP88",
+        description="Semak snapshot keputusan 4D terkini yang diterbitkan untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia lain, bersama tarikh cabutan dan masa kemas kini.",
+        path="/ms/", h1="Keputusan 4D Malaysia: Snapshot Terkini Diterbitkan",
+        lead="Semak snapshot terakhir yang telah disemak dan diterbitkan untuk penyedia 4D utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
         body=body, current="ms", language="ms-MY", hreflang=True,
         crumbs=[("Utama", "/"), ("Keputusan 4D", "/ms/")],
     )
@@ -584,7 +587,7 @@ def build(
 
     static_paths = [
         ("/", content_modified_iso),
-        ("/privacy.html", "2026-08-24"),
+        ("/privacy.html", "2026-08-25"),
         ("/disclaimer.html", "2026-08-24"),
         ("/about.html", "2026-08-24"),
         ("/methodology.html", "2026-08-24"),
