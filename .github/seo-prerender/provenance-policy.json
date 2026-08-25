@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "rightsApproval": {
     "status": "confirmed",
     "approvalId": "OWNER-REPUBLISH-2026-08-24",
@@ -8,9 +8,9 @@
   },
   "accuracyReview": {
     "status": "cross-checked",
-    "reviewedAt": "2026-08-24T15:03:00+08:00",
-    "evidence": ".github/seo-prerender/evidence/provider-verification-2026-08-24.md",
-    "scope": "Exact 23 August 2026 provider snapshot: automated two-feed comparison for Magnum, Da Ma Cai and Sports Toto including extended fields; dated provider-owned plus independent checks for Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools; dated operator-family plus independent checks for Grand Dragon. Manual checks are digest-bound and do not carry to future draws.",
+    "reviewedAt": "2026-08-25T14:15:40+08:00",
+    "evidence": ".github/seo-prerender/evidence/provider-verification-2026-08-25.md",
+    "scope": "Exact mixed-date snapshot published on 25 August 2026: automated two-feed comparison for Magnum, Da Ma Cai and Sports Toto including extended fields; retained digest-bound 23 August provider-owned checks for unchanged Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools results; and a new 24 August operator-family plus independent check for Grand Dragon. Manual checks apply only to their exact provider objects.",
     "snapshotVerifications": {
       "draw-2026-08-23-provider-owned-2026-08-24": {
         "checkedAt": "2026-08-24T14:59:00+08:00",
@@ -120,37 +120,65 @@
             ]
           }
         }
+      },
+      "draw-2026-08-24-grand-dragon-2026-08-25": {
+        "checkedAt": "2026-08-25T14:15:36+08:00",
+        "method": "operator-family-plus-independent",
+        "evidence": ".github/seo-prerender/evidence/provider-verification-2026-08-25.md",
+        "providers": {
+          "gd4d": {
+            "drawDate": "24-08-2026",
+            "drawNo": null,
+            "resultSha256": "sha256:52599673c5eff69c022c5567a7cf9603a7817108c9c626a478fca555b78608b3",
+            "evidenceSources": [
+              {
+                "url": "https://gdlotto.com/results/prize-calculator/",
+                "publisherId": "grand-dragon-operator-family",
+                "role": "operator-family"
+              },
+              {
+                "url": "https://lotto4dlive.com/past-results/2026-08-24",
+                "publisherId": "lotto4dlive",
+                "role": "independent-publisher"
+              }
+            ]
+          }
+        }
       }
     }
   },
   "releaseApproval": {
-    "status": "staging-only",
-    "approvalId": null,
-    "approvedAt": null,
-    "resultsSha256": null,
-    "evidence": "The 24 August 2026 Batch 2-3 live approval was consumed by production commit 6ae25b05eef6efdeedc353fa81e823835a2b31a9. It does not authorize a later result snapshot.",
-    "reason": "Each changed result snapshot requires a separate explicit live approval bound to its exact snapshot digest."
+    "status": "approved",
+    "approvalId": "OWNER-EXACT-SNAPSHOT-2026-08-25-C9FABE6B",
+    "approvedAt": "2026-08-25T14:16:02+08:00",
+    "resultsSha256": "sha256:c9fabe6bbb24feed46dc5a48335b158fc599428195c421493c0eab3decb2f663",
+    "snapshotVerificationIds": [
+      "draw-2026-08-23-provider-owned-2026-08-24",
+      "draw-2026-08-24-grand-dragon-2026-08-25"
+    ],
+    "evidence": "The site owner explicitly approved GitHub publication of staged fix commit 8504aeff99b52e350da6f354af5f81d2a8ba774a and corrected 24-August snapshot sha256:c9fabe6bbb24feed46dc5a48335b158fc599428195c421493c0eab3decb2f663 in the 4DVIP88 SEO task on 2026-08-25. No GA4 or manual indexing was authorized.",
+    "reason": "Publish only the exact approved result snapshot after the selected digest-bound provider checks pass."
   },
   "sources": [
     {
       "sourceId": "4d4d-co",
       "url": "https://4d4d.co/",
       "verificationStatus": "cross-checked",
-      "accuracyEvidence": "Magnum, Da Ma Cai and Sports Toto draw metadata and result fields were compared with a second feed on 2026-08-24. The exact Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools snapshot was separately checked against provider-owned and independent pages.",
+      "accuracyEvidence": "Magnum, Da Ma Cai and Sports Toto draw metadata and result fields were compared with a second feed on 2026-08-25. The unchanged Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools provider objects retain their dated digest-bound provider-owned and independent checks.",
       "reusePermission": "confirmed",
       "reuseEvidence": "OWNER-REPUBLISH-2026-08-24",
       "stagingAllowed": true,
-      "publicationAllowed": false
+      "publicationAllowed": true
     },
     {
       "sourceId": "4dmoon-feedwest",
       "url": "https://www.4dmoon.com/feedwest.json",
       "verificationStatus": "cross-checked",
-      "accuracyEvidence": "Magnum, Da Ma Cai, 1+3D and Sports Toto values matched the primary feed comparison on 2026-08-24. Grand Dragon has a separate dated operator-family plus independent manual check for this exact snapshot, but no repeatable second automated source.",
+      "accuracyEvidence": "Magnum, Da Ma Cai, 1+3D and Sports Toto values matched the primary feed comparison on 2026-08-25. Grand Dragon 24 August 2026 has a separate digest-bound operator-family plus independent check for this exact provider object.",
       "reusePermission": "confirmed",
       "reuseEvidence": "OWNER-REPUBLISH-2026-08-24",
       "stagingAllowed": true,
-      "publicationAllowed": false
+      "publicationAllowed": true
     }
   ]
 }
