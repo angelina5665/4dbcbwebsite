@@ -20,6 +20,8 @@ import prerender_results as pre
 TOOL_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOL_DIR.parents[1]
 BASE_URL = "https://4dvip88.com"
+ARCHIVE_METADATA_PATH = TOOL_DIR / "archive-metadata.json"
+ARCHIVE_METADATA_SCHEMA_VERSION = 1
 
 PROVIDER_PAGES = (
     {
@@ -401,6 +403,86 @@ def archive_dates(planned: dict[Path, str], current_iso: str) -> list[str]:
     return sorted(dates, reverse=True)
 
 
+def archive_lastmods(
+    metadata: dict[str, Any],
+    dates: list[str],
+    *,
+    current_iso: str,
+    content_modified_iso: str,
+    mode: str,
+    now: datetime | None = None,
+) -> dict[str, str]:
+    """Validate deterministic sitemap dates for every retained archive."""
+    if metadata.get("schemaVersion") != ARCHIVE_METADATA_SCHEMA_VERSION:
+        raise pre.ValidationError(
+            f"archive metadata schemaVersion must be {ARCHIVE_METADATA_SCHEMA_VERSION}"
+        )
+    records = metadata.get("archives")
+    if not isinstance(records, dict) or not records:
+        raise pre.ValidationError("archive metadata records are missing")
+
+    expected_dates = set(dates)
+    recorded_dates = set(records)
+    extra_dates = sorted(recorded_dates - expected_dates)
+    missing_dates = sorted(expected_dates - recorded_dates)
+    allowed_missing = {current_iso} if mode == "staging" else set()
+    if extra_dates:
+        raise pre.ValidationError(
+            "archive metadata contains unretained dates: " + ", ".join(extra_dates)
+        )
+    if set(missing_dates) - allowed_missing:
+        raise pre.ValidationError(
+            "archive metadata is missing retained dates: " + ", ".join(missing_dates)
+        )
+
+    reference_now = now or datetime.now(pre.MYT)
+    if reference_now.tzinfo is None or reference_now.utcoffset() is None:
+        reference_now = reference_now.replace(tzinfo=pre.MYT)
+    validated: dict[str, str] = {}
+    for archive_date in sorted(recorded_dates):
+        try:
+            parsed_archive_date = datetime.strptime(archive_date, "%Y-%m-%d")
+        except ValueError as exc:
+            raise pre.ValidationError(
+                f"archive metadata contains invalid date {archive_date!r}"
+            ) from exc
+        record = records[archive_date]
+        if not isinstance(record, dict) or set(record) != {"lastmod"}:
+            raise pre.ValidationError(
+                f"archive metadata record for {archive_date} must contain only lastmod"
+            )
+        lastmod = record.get("lastmod")
+        if not isinstance(lastmod, str):
+            raise pre.ValidationError(f"archive metadata lastmod for {archive_date} is invalid")
+        try:
+            parsed_lastmod = datetime.strptime(lastmod, "%Y-%m-%d")
+        except ValueError as exc:
+            raise pre.ValidationError(
+                f"archive metadata lastmod for {archive_date} is invalid"
+            ) from exc
+        if parsed_lastmod.date() < parsed_archive_date.date():
+            raise pre.ValidationError(
+                f"archive metadata lastmod for {archive_date} predates the archive"
+            )
+        if parsed_lastmod.date() > reference_now.astimezone(pre.MYT).date():
+            raise pre.ValidationError(
+                f"archive metadata lastmod for {archive_date} is in the future"
+            )
+        validated[archive_date] = lastmod
+
+    if mode == "staging":
+        validated[current_iso] = max(
+            validated.get(current_iso, content_modified_iso),
+            content_modified_iso,
+        )
+    elif validated.get(current_iso, "") < content_modified_iso:
+        raise pre.ValidationError(
+            f"archive metadata lastmod for current archive {current_iso} "
+            f"predates the snapshot update {content_modified_iso}"
+        )
+    return validated
+
+
 def past_results_page(dates: list[str]) -> str:
     links = "".join(
         f'<li><a href="/results/{date}/">Malaysia 4D results for {datetime.strptime(date, "%Y-%m-%d").strftime("%d %B %Y")}</a></li>'
@@ -581,6 +663,15 @@ def build(
     archive_path = REPO_ROOT / "results" / current_iso / "index.html"
     planned[archive_path] = archive_page(results, current_iso)
     dates = archive_dates(planned, current_iso)
+    metadata = pre.read_json(ARCHIVE_METADATA_PATH)
+    archive_lastmod = archive_lastmods(
+        metadata,
+        dates,
+        current_iso=current_iso,
+        content_modified_iso=content_modified_iso,
+        mode=mode,
+        now=now,
+    )
     planned[REPO_ROOT / "past-results" / "index.html"] = past_results_page(dates)
     planned[REPO_ROOT / "4d-prize-guide" / "index.html"] = prize_guide_page()
     planned[REPO_ROOT / "ms" / "index.html"] = malay_page(results)
@@ -596,7 +687,7 @@ def build(
     generated_paths = [(f'/{config["slug"]}/', content_modified_iso) for config in PROVIDER_PAGES + REGION_PAGES]
     generated_paths.extend([("/past-results/", content_modified_iso), ("/4d-prize-guide/", "2026-08-24"), ("/ms/", content_modified_iso)])
     archive_paths = [
-        (f"/results/{date}/", content_modified_iso if date == current_iso else date)
+        (f"/results/{date}/", archive_lastmod[date])
         for date in dates
     ]
     planned[REPO_ROOT / "sitemap.xml"] = sitemap_document(static_paths + generated_paths + archive_paths)
