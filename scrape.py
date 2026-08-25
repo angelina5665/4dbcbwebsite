@@ -199,7 +199,10 @@ def normalise_draw_number(value: Any) -> str:
 
 
 def normalise_amount(value: Any) -> str:
-    return "".join(re.findall(r"\d|\.", str(value).replace(",", "")))
+    amount = "".join(re.findall(r"\d|\.", str(value).replace(",", "")))
+    if "." in amount:
+        amount = amount.rstrip("0").rstrip(".")
+    return amount
 
 
 def moon_draw_metadata(source: dict[str, Any]) -> tuple[str, str]:
@@ -236,6 +239,17 @@ def cross_check(providers: dict[str, Any], moon: dict[str, Any]) -> None:
             raise pre.ValidationError(f"cross-source mismatch for {provider_key} special results")
         if numeric_values(provider.get("consolation")) != numeric_values(source_consolation):
             raise pre.ValidationError(f"cross-source mismatch for {provider_key} consolation results")
+        if provider_key == "damacai13d":
+            rows = provider.get("d3rows")
+            if not isinstance(rows, list) or len(rows) != 3:
+                raise pre.ValidationError("cross-source mismatch for damacai13d d3rows")
+            for index, row in enumerate(rows, 1):
+                if not isinstance(row, dict):
+                    raise pre.ValidationError("cross-source mismatch for damacai13d d3rows")
+                if clean(row.get("zodiac")).upper() != clean(source.get(f"PB{index}")).upper():
+                    raise pre.ValidationError(f"cross-source mismatch for damacai13d zodiac {index}")
+                if normalise_amount(row.get("bonus")) != normalise_amount(source.get(f"JP{index}")):
+                    raise pre.ValidationError(f"cross-source mismatch for damacai13d bonus {index}")
 
     totoextra = providers.get("totoextra")
     toto_source = moon.get("T")
