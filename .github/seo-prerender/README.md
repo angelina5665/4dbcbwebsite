@@ -99,6 +99,16 @@ the complete directory is atomically moved into place.
 No Chinese page, future-date archive, spelling doorway or provider/date page
 permutation is generated.
 
+## Archive sitemap dates
+
+`archive-metadata.json` is the deterministic source for each retained archive's
+sitemap `lastmod`. Historical archive records are mandatory and cannot predate
+their draw date or point into the future. Staging may derive a missing current
+candidate date from the candidate's update date so the read-only review
+artifact still builds. Publication requires an explicit current record that
+does not predate the frozen snapshot's update date. Bump a retained archive's
+value only when that archived page receives a material content change.
+
 ## Tests
 
 ```powershell
