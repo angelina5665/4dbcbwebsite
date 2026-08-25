@@ -1,11 +1,11 @@
 {
  "recentDates": [
+  "24-08-2026 (Mon)",
   "23-08-2026 (Sun)",
   "22-08-2026 (Sat)",
   "19-08-2026 (Wed)",
   "16-08-2026 (Sun)",
-  "15-08-2026 (Sat)",
-  "12-08-2026 (Wed)"
+  "15-08-2026 (Sat)"
  ],
  "providers": {
   "damacai": {
@@ -245,17 +245,17 @@
     {
      "value": "244 083",
      "zodiac": "DRAGON",
-     "bonus": "RM 2,442,222.10"
+     "bonus": "RM 548,333.30"
     },
     {
      "value": "225 421",
      "zodiac": "HORSE",
-     "bonus": "RM 691,666.60"
+     "bonus": "RM 1,564,513.80"
     },
     {
      "value": "957 449",
-     "zodiac": "HORSE",
-     "bonus": "RM 1,875,972.10"
+     "zodiac": "MONKEY",
+     "bonus": "RM 1,863,339.00"
     }
    ]
   },
@@ -418,46 +418,46 @@
   },
   "gd4d": {
    "name": "Grand Dragon 4D",
-   "first": "9870",
-   "second": "9445",
-   "third": "3927",
-   "drawDay": "Sun",
-   "drawDate": "23-08-2026",
+   "first": "8307",
+   "second": "4716",
+   "third": "7295",
+   "drawDay": "Mon",
+   "drawDate": "24-08-2026",
    "special": [
-    "4042",
+    "3784",
+    "5243",
+    "0113",
     "----",
-    "9231",
-    "3030",
-    "2277",
-    "7170",
-    "6318",
-    "3176",
-    "6025",
+    "0802",
+    "8039",
+    "0943",
+    "0011",
+    "1217",
+    "0560",
     "----",
-    "9383",
-    "7932",
-    "----"
+    "----",
+    "6039"
    ],
    "consolation": [
-    "3127",
-    "2317",
-    "3331",
-    "3483",
-    "1667",
-    "6811",
-    "0022",
-    "2746",
-    "4588",
-    "8944"
+    "8992",
+    "1084",
+    "9974",
+    "6385",
+    "4442",
+    "1284",
+    "1813",
+    "6291",
+    "4103",
+    "8885"
    ]
   }
  },
- "drawDate": "23-08-2026",
- "drawDay": "Sun",
- "updated": "2026-08-24 14:23 MYT",
+ "drawDate": "24-08-2026",
+ "drawDay": "Mon",
+ "updated": "2026-08-25 02:29 MYT",
  "provenance": {
   "approvalId": "OWNER-REPUBLISH-2026-08-24",
-  "verifiedAt": "2026-08-24T14:23:30+08:00",
+  "verifiedAt": "2026-08-25T02:29:42+08:00",
   "providerSources": {
    "damacai": "4d4d-co",
    "magnum": "4d4d-co",
@@ -479,9 +479,9 @@
     "totoextra"
    ]
   },
-  "snapshotVerificationIds": [
-   "draw-2026-08-23-provider-owned-2026-08-24",
-   "draw-2026-08-23-grand-dragon-2026-08-24"
-  ]
+  "sourcePayloadSha256": {
+   "4d4d-co": "sha256:7ca611af6e1194f0787f5b59298eb8d39003c0dc0120b71bb9413294fe57c2e7",
+   "4dmoon-feedwest": "sha256:69f03a1ff57e398ff96444a8e76632b8015ba165d6907cd313e9d05e475bdd6c"
+  }
  }
 }
