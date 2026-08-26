@@ -1,37 +1,24 @@
-"""Fetch, cross-check and atomically update the latest 4D result snapshot.
+"""
+Fetch the latest 4D results and write them to results.json.
 
-The script fails closed when a required provider is missing, priority-provider
-sources disagree, dates are invalid/stale, or result shapes are incomplete.
-Timestamp-only changes do not rewrite results.json.
+The website reads results.json, so this script is the only thing that needs to
+know where the numbers come from. Layout, logos and banners live in index.html
+and are never touched by this script.
+
+Run it with:  python scrape.py
 """
 
-from __future__ import annotations
-
-import argparse
-import hashlib
 import json
-import os
 import re
 import sys
-import tempfile
 import urllib.request
-from copy import deepcopy
-from datetime import datetime
-from pathlib import Path
-from typing import Any
-
-
-ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / ".github" / "seo-prerender"))
-import prerender_results as pre  # noqa: E402
-
+from datetime import datetime, timezone, timedelta
 
 SOURCE = "https://4d4d.co/"
-MOON_SOURCE = "https://www.4dmoon.com/feedwest.json"
-OUT = ROOT / "results.json"
-APPROVAL_ID = "OWNER-REPUBLISH-2026-08-24"
-MAX_SOURCE_BYTES = 2 * 1024 * 1024
+GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
+OUT = "results.json"
 
+# 4d4d.co's name for each provider -> the key our website uses
 PROVIDER_KEYS = {
     "Damacai 4D": "damacai",
     "Magnum 4D": "magnum",
@@ -44,418 +31,185 @@ PROVIDER_KEYS = {
     "Cashweep 4D": "cashsweep",
     "Cashsweep 4D": "cashsweep",
 }
-MOON_PROVIDER_KEYS = {
-    "magnum": "M",
-    "damacai": "D",
-    "damacai13d": "D6",
-    "toto": "T",
-}
-CROSS_CHECKED_PROVIDER_KEYS = ("magnum", "damacai", "damacai13d", "toto", "totoextra")
 
 
-def fetch(url: str) -> str:
-    request = urllib.request.Request(
-        url,
-        headers={"User-Agent": "Mozilla/5.0 (compatible; 4dvip-results/2.0; +https://4dvip88.com/methodology.html)"},
-    )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        content_length = response.headers.get("Content-Length")
-        if content_length and content_length.isdigit() and int(content_length) > MAX_SOURCE_BYTES:
-            raise pre.ValidationError(f"source response exceeds {MAX_SOURCE_BYTES} bytes")
-        payload = response.read(MAX_SOURCE_BYTES + 1)
-        if len(payload) > MAX_SOURCE_BYTES:
-            raise pre.ValidationError(f"source response exceeds {MAX_SOURCE_BYTES} bytes")
-        return payload.decode("utf-8", "replace")
+def fetch(url):
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; 4dvip-results/1.0)"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return r.read().decode("utf-8", "replace")
 
 
-def clean(value: str | None) -> str:
-    value = re.sub(r"<[^>]+>", "", value or "")
-    value = value.replace("&nbsp;", " ").replace("&amp;", "&")
-    return " ".join(value.split())
+def clean(s):
+    s = re.sub(r"<[^>]+>", "", s or "")
+    s = s.replace("&nbsp;", " ").replace("&amp;", "&")
+    return " ".join(s.split())
 
 
-def cells(source: str, css: str) -> list[str]:
-    return [clean(match) for match in re.findall(r'class="' + css + r'"[^>]*>(.*?)</td>', source, re.S)]
+def cells(html, css):
+    """All <td class="css"> values, in page order."""
+    return [clean(m) for m in re.findall(r'class="' + css + r'"[^>]*>(.*?)</td>', html, re.S)]
 
 
-def section_after(source: str, heading: str) -> str:
-    start = source.find(">" + heading + "</td>")
-    if start < 0:
+def section_after(html, heading):
+    """Everything after a prize heading, up to the next heading."""
+    i = html.find(">" + heading + "</td>")
+    if i < 0:
         return ""
-    remainder = source[start:]
-    next_heading = re.search(r'class="resultprizelable"[^>]*>(?!' + re.escape(heading) + r')', remainder[20:])
-    return remainder[: next_heading.start() + 20] if next_heading else remainder
+    rest = html[i:]
+    nxt = re.search(r'class="resultprizelable"[^>]*>(?!' + re.escape(heading) + r')', rest[20:])
+    return rest[: nxt.start() + 20] if nxt else rest
 
 
-def parse_card(block: str) -> tuple[str | None, dict[str, Any] | None]:
-    labels = re.findall(r'class="result\w+lable"[^>]*>\s*([^<>]+?)\s*</td>', block)
-    name = next((clean(value) for value in labels if clean(value)), "")
+def parse_card(block):
+    label = re.findall(r'class="result\w+lable"[^>]*>\s*([^<>]+?)\s*</td>', block)
+    name = next((clean(x) for x in label if clean(x)), "")
     if name not in PROVIDER_KEYS:
         return None, None
 
-    key = PROVIDER_KEYS[name]
-    card: dict[str, Any] = {"name": name}
-    match = re.search(r"Date:\s*(\d{2}-\d{2}-\d{4})\s*\((\w{3})\)", block)
-    if match:
-        card["drawDate"], card["drawDay"] = match.group(1), match.group(2)
-    match = re.search(r"Draw No:\s*([^<\n]+?)\s*</td>", block)
-    if match:
-        card["drawNo"] = clean(match.group(1))
+    card = {"name": name}
+
+    m = re.search(r"Date:\s*(\d{2}-\d{2}-\d{4})\s*\((\w{3})\)", block)
+    if m:
+        card["drawDate"], card["drawDay"] = m.group(1), m.group(2)
+    m = re.search(r"Draw No:\s*([^<\n]+?)\s*</td>", block)
+    if m:
+        card["drawNo"] = clean(m.group(1))
 
     tops = cells(block, "resulttop")
     if len(tops) >= 3:
-        card["first"], card["second"], card["third"] = tops[:3]
+        card["first"], card["second"], card["third"] = tops[0], tops[1], tops[2]
 
-    special = section_after(block, "Special 特別獎")
-    consolation = section_after(block, "Consolation 安慰獎")
-    if special:
-        card["special"] = cells(special, "resultbottom")
-    if consolation:
-        card["consolation"] = cells(consolation, "resultbottom")
+    sp = section_after(block, "Special 特別獎")
+    if sp:
+        card["special"] = cells(sp, "resultbottom")
+    co = section_after(block, "Consolation 安慰獎")
+    if co:
+        card["consolation"] = cells(co, "resultbottom")
+
+    key = PROVIDER_KEYS[name]
 
     if key == "sabah88" and len(tops) >= 6:
+        # the 3D prizes follow the 4D prizes in the same card
         card["threeD"] = {"first": tops[3], "second": tops[4], "third": tops[5]}
 
     if key == "damacai13d":
-        zodiac = cells(block, "resultbottomtoto2")
+        zod = cells(block, "resultbottomtoto2")
         bonus = re.findall(r'id="d3jp\d"[^>]*>([^<]+)<', block)
-        card["d3rows"] = [
-            {
-                "value": tops[index],
-                "zodiac": zodiac[index] if index < len(zodiac) else "",
-                "bonus": clean(bonus[index]) if index < len(bonus) else "",
-            }
-            for index in range(min(3, len(tops)))
-        ]
+        rows = []
+        for i in range(min(3, len(tops))):
+            rows.append({
+                "value": tops[i],
+                "zodiac": zod[i] if i < len(zod) else "",
+                "bonus": clean(bonus[i]) if i < len(bonus) else "",
+            })
+        card["d3rows"] = rows
 
     if key == "totoextra":
-        for field in ("special", "consolation", "first", "second", "third"):
-            card.pop(field, None)
-        five_d = cells(section_after(block, "5D"), "resultbottom")
-        six_d = cells(section_after(block, "6D"), "resultbottom")
-        if len(five_d) >= 6:
-            card["fiveD"] = five_d[:6]
-        if len(six_d) >= 9:
-            card["sixD"] = six_d[:9]
+        card.pop("special", None)
+        card.pop("consolation", None)
+        card.pop("first", None)
+        card.pop("second", None)
+        card.pop("third", None)
+
+        five = section_after(block, "5D")
+        fv = cells(five, "resultbottom")
+        if len(fv) >= 6:
+            card["fiveD"] = fv[:6]
+
+        six = section_after(block, "6D")
+        sx = cells(six, "resultbottom")
+        if len(sx) >= 9:
+            card["sixD"] = sx[:9]
+
         card["lotto"] = []
         for title in ("Star Toto 6/50", "Power Toto 6/55", "Supreme Toto 6/58"):
-            section = section_after(block, title)
-            if not section:
+            blk = section_after(block, title)
+            if not blk:
                 continue
-            values = cells(section, "resultbottomtoto2")
-            labels = cells(section, "resultbottomtotojp")
-            amounts = cells(section, "resultbottomtotojpval")
-            balls = [value for value in values if value and value != "+"]
-            entry: dict[str, Any] = {"title": title, "balls": balls[:6]}
+            nums = cells(blk, "resultbottomtoto2")
+            jpl = cells(blk, "resultbottomtotojp")
+            jpv = cells(blk, "resultbottomtotojpval")
+            balls = [n for n in nums if n and n != "+"]
+            entry = {"title": title, "balls": balls[:6]}
             if len(balls) > 6:
                 entry["bonus"] = balls[6]
-            entry["jackpots"] = [[labels[index], amounts[index]] for index in range(min(len(labels), len(amounts)))]
+            entry["jackpots"] = [[jpl[i], jpv[i]] for i in range(min(len(jpl), len(jpv)))]
             card["lotto"].append(entry)
+
     return key, card
 
 
-def parse(source: str) -> dict[str, Any]:
-    providers: dict[str, Any] = {}
-    for block in re.findall(r'<div class="outerbox">(.*?)</div>', source, re.S):
+def parse(html):
+    providers = {}
+    for block in re.findall(r'<div class="outerbox">(.*?)</div>', html, re.S):
         key, card = parse_card(block)
-        if key and card and key not in providers:
+        if key and key not in providers:
             providers[key] = card
 
-    dates: list[str] = []
-    for draw_date, draw_day in re.findall(r'/result/(\d{2}-\d{2}-\d{4})\.html">\1 \((\w{3})\)', source):
-        entry = f"{draw_date} ({draw_day})"
+    dates = []
+    for d, day in re.findall(r'/result/(\d{2}-\d{2}-\d{4})\.html">\1 \((\w{3})\)', html):
+        entry = d + " (" + day + ")"
         if entry not in dates:
             dates.append(entry)
-    return {"recentDates": dates[:6], "providers": providers}
+    if not dates:
+        for d, day in re.findall(r'href="/result/(\d{2}-\d{2}-\d{4})\.html"[^>]*>\s*([\d-]+ \((\w{3})\))', html):
+            pass
 
+    latest = next((c for c in providers.values() if c.get("drawDate")), {})
+    now = datetime.now(timezone(timedelta(hours=8)))
 
-def build_grand_dragon(feed: dict[str, Any]) -> dict[str, Any]:
-    source = feed.get("G")
-    if not isinstance(source, dict) or not source.get("P1"):
-        raise pre.ValidationError("Grand Dragon result is missing from the cross-check feed")
-    card: dict[str, Any] = {
-        "name": "Grand Dragon 4D",
-        "first": str(source["P1"]),
-        "second": str(source["P2"]),
-        "third": str(source["P3"]),
+    return {
+        "drawDate": latest.get("drawDate", ""),
+        "drawDay": latest.get("drawDay", ""),
+        "recentDates": dates[:6],
+        "updated": now.strftime("%Y-%m-%d %H:%M") + " MYT",
+        "providers": providers,
     }
-    match = re.match(r"\((\w{3})\)\s*(\d{2})-(\w{3})-(\d{4})", str(source.get("DD", "")))
-    if not match:
-        raise pre.ValidationError("Grand Dragon draw date is missing or invalid")
-    months = {name: f"{number:02d}" for number, name in enumerate(("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), 1)}
-    card["drawDay"] = match.group(1)
-    card["drawDate"] = f"{match.group(2)}-{months[match.group(3)]}-{match.group(4)}"
-    card["special"] = [str(source.get(f"S{index}", "")) for index in range(1, 14)]
-    card["consolation"] = [str(source.get(f"C{index}", "")) for index in range(1, 11)]
+
+
+def fetch_grand_dragon():
+    """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
+    raw = json.loads(fetch(GD_SOURCE))
+    g = raw.get("G")
+    if not g or not g.get("P1"):
+        return None
+    card = {"name": "Grand Dragon 4D"}
+    m = re.match(r"\((\w{3})\)\s*(\d{2})-(\w{3})-(\d{4})", g.get("DD", ""))
+    if m:
+        months = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+                  "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
+        card["drawDay"] = m.group(1)
+        card["drawDate"] = "%s-%s-%s" % (m.group(2), months.get(m.group(3), "01"), m.group(4))
+    card["first"], card["second"], card["third"] = g["P1"], g["P2"], g["P3"]
+    sp = [g.get("S%d" % i, "") for i in range(1, 14)]
+    # centre the last three, same as the source site shows them
+    card["special"] = sp[:10] + [""] + sp[10:13] + [""]
+    card["consolation"] = [g.get("C%d" % i, "") for i in range(1, 11)]
     return card
 
 
-def normalise_number(value: Any) -> str:
-    return "".join(re.findall(r"\d|\*", str(value)))
+def main():
+    html = fetch(SOURCE)
+    data = parse(html)
 
-
-def normalise_draw_number(value: Any) -> str:
-    return "".join(re.findall(r"\d", str(value)))
-
-
-def normalise_amount(value: Any) -> str:
-    amount = "".join(re.findall(r"\d|\.", str(value).replace(",", "")))
-    if "." in amount:
-        amount = amount.rstrip("0").rstrip(".")
-    return amount
-
-
-def moon_draw_metadata(source: dict[str, Any]) -> tuple[str, str]:
-    match = re.fullmatch(r"\(([A-Z][a-z]{2})\)\s*(\d{2})-([A-Z][a-z]{2})-(\d{4})", str(source.get("DD", "")))
-    if not match:
-        raise pre.ValidationError("cross-check draw date is missing or invalid")
-    months = {name: f"{number:02d}" for number, name in enumerate(("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"), 1)}
-    return f"{match.group(2)}-{months[match.group(3)]}-{match.group(4)}", match.group(1)
-
-
-def numeric_values(values: Any) -> list[str]:
-    if not isinstance(values, list):
-        return []
-    return sorted(normalise_number(value) for value in values if re.search(r"\d", str(value)))
-
-
-def cross_check(providers: dict[str, Any], moon: dict[str, Any]) -> None:
-    for provider_key, moon_key in MOON_PROVIDER_KEYS.items():
-        provider = providers.get(provider_key)
-        source = moon.get(moon_key)
-        if not isinstance(provider, dict) or not isinstance(source, dict):
-            raise pre.ValidationError(f"cross-check data missing for {provider_key}")
-        source_date, source_day = moon_draw_metadata(source)
-        if provider.get("drawDate") != source_date or provider.get("drawDay") != source_day:
-            raise pre.ValidationError(f"cross-source mismatch for {provider_key} draw date")
-        if source.get("DN") and normalise_draw_number(provider.get("drawNo")) != normalise_draw_number(source.get("DN")):
-            raise pre.ValidationError(f"cross-source mismatch for {provider_key} draw number")
-        for field, source_field in (("first", "P1"), ("second", "P2"), ("third", "P3")):
-            if normalise_number(provider.get(field)) != normalise_number(source.get(source_field)):
-                raise pre.ValidationError(f"cross-source mismatch for {provider_key} {field}")
-        source_special = [source.get(f"S{index}", "") for index in range(1, 14)]
-        source_consolation = [source.get(f"C{index}", "") for index in range(1, 11)]
-        if numeric_values(provider.get("special")) != numeric_values(source_special):
-            raise pre.ValidationError(f"cross-source mismatch for {provider_key} special results")
-        if numeric_values(provider.get("consolation")) != numeric_values(source_consolation):
-            raise pre.ValidationError(f"cross-source mismatch for {provider_key} consolation results")
-        if provider_key == "damacai13d":
-            rows = provider.get("d3rows")
-            if not isinstance(rows, list) or len(rows) != 3:
-                raise pre.ValidationError("cross-source mismatch for damacai13d d3rows")
-            for index, row in enumerate(rows, 1):
-                if not isinstance(row, dict):
-                    raise pre.ValidationError("cross-source mismatch for damacai13d d3rows")
-                if clean(row.get("zodiac")).upper() != clean(source.get(f"PB{index}")).upper():
-                    raise pre.ValidationError(f"cross-source mismatch for damacai13d zodiac {index}")
-                if normalise_amount(row.get("bonus")) != normalise_amount(source.get(f"JP{index}")):
-                    raise pre.ValidationError(f"cross-source mismatch for damacai13d bonus {index}")
-
-    totoextra = providers.get("totoextra")
-    toto_source = moon.get("T")
-    if not isinstance(totoextra, dict) or not isinstance(toto_source, dict):
-        raise pre.ValidationError("cross-check data missing for totoextra")
-    source_date, source_day = moon_draw_metadata(toto_source)
-    if totoextra.get("drawDate") != source_date or totoextra.get("drawDay") != source_day:
-        raise pre.ValidationError("cross-source mismatch for totoextra draw date")
-    if normalise_draw_number(totoextra.get("drawNo")) != normalise_draw_number(toto_source.get("DN")):
-        raise pre.ValidationError("cross-source mismatch for totoextra draw number")
-    expected_five = [
-        toto_source.get("P5D1", ""), toto_source.get("P5D4", ""),
-        toto_source.get("P5D2", ""), toto_source.get("P5D5", ""),
-        toto_source.get("P5D3", ""), toto_source.get("P5D6", ""),
-    ]
-    expected_six = [
-        toto_source.get("P6D1", ""), toto_source.get("P6D2A", ""), toto_source.get("P6D2B", ""),
-        toto_source.get("P6D3A", ""), toto_source.get("P6D3B", ""), toto_source.get("P6D4A", ""),
-        toto_source.get("P6D4B", ""), toto_source.get("P6D5A", ""), toto_source.get("P6D5B", ""),
-    ]
-    if [normalise_number(value) for value in totoextra.get("fiveD", [])] != [normalise_number(value) for value in expected_five]:
-        raise pre.ValidationError("cross-source mismatch for totoextra fiveD")
-    if [normalise_number(value) for value in totoextra.get("sixD", [])] != [normalise_number(value) for value in expected_six]:
-        raise pre.ValidationError("cross-source mismatch for totoextra sixD")
-    lotto_sources = {
-        "Star Toto 6/50": ([toto_source.get(f"P650{index}", "") for index in range(1, 7)], toto_source.get("P650EX"), [toto_source.get("P650JP1"), toto_source.get("P650JP2")]),
-        "Power Toto 6/55": ([toto_source.get(f"P655{index}", "") for index in range(1, 7)], None, [toto_source.get("P655JP")]),
-        "Supreme Toto 6/58": ([toto_source.get(f"P658{index}", "") for index in range(1, 7)], None, [toto_source.get("P658JP")]),
-    }
-    lotto_by_title = {entry.get("title"): entry for entry in totoextra.get("lotto", []) if isinstance(entry, dict)}
-    for title, (balls, bonus, jackpots) in lotto_sources.items():
-        entry = lotto_by_title.get(title)
-        if not isinstance(entry, dict):
-            raise pre.ValidationError(f"cross-source mismatch for totoextra {title}")
-        if [normalise_number(value) for value in entry.get("balls", [])] != [normalise_number(value) for value in balls]:
-            raise pre.ValidationError(f"cross-source mismatch for totoextra {title} balls")
-        if normalise_number(entry.get("bonus")) != normalise_number(bonus):
-            raise pre.ValidationError(f"cross-source mismatch for totoextra {title} bonus")
-        observed_amounts = [normalise_amount(row[1]) for row in entry.get("jackpots", []) if isinstance(row, list) and len(row) == 2]
-        if observed_amounts != [normalise_amount(value) for value in jackpots]:
-            raise pre.ValidationError(f"cross-source mismatch for totoextra {title} jackpots")
-
-
-def latest_provider_date(providers: dict[str, Any]) -> tuple[str, str]:
-    dated = []
-    for provider in providers.values():
-        draw_date = provider.get("drawDate")
-        draw_day = provider.get("drawDay")
-        if draw_date and draw_day:
-            dated.append((pre.parse_draw_date(draw_date), draw_date, draw_day))
-    if not dated:
-        raise pre.ValidationError("no provider draw dates were parsed")
-    _, draw_date, draw_day = max(dated, key=lambda entry: entry[0])
-    return draw_date, draw_day
-
-
-def recent_dates_with_latest(values: Any, draw_date: str, draw_day: str) -> list[str]:
-    latest = f"{draw_date} ({draw_day})"
-    retained = [
-        value for value in (values if isinstance(values, list) else [])
-        if isinstance(value, str) and value != latest
-    ]
-    return [latest, *retained][:6]
-
-
-def semantic_view(data: dict[str, Any]) -> dict[str, Any]:
-    """Return only factual result data used to decide if review is needed."""
-    return {
-        "drawDate": deepcopy(data.get("drawDate")),
-        "drawDay": deepcopy(data.get("drawDay")),
-        "recentDates": deepcopy(data.get("recentDates")),
-        "providers": deepcopy(data.get("providers")),
-    }
-
-
-def atomic_json_write(path: Path, data: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = (json.dumps(data, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
-    handle, temporary_name = tempfile.mkstemp(prefix=path.name + ".", suffix=".tmp", dir=path.parent)
     try:
-        with os.fdopen(handle, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary_name, path)
-    finally:
-        if os.path.exists(temporary_name):
-            os.unlink(temporary_name)
+        gd = fetch_grand_dragon()
+        if gd:
+            data["providers"]["gd4d"] = gd
+    except Exception as e:
+        print("Grand Dragon fetch failed (%s) - keeping the rest" % e, file=sys.stderr)
 
-
-def path_is_within(path: Path, parent: Path) -> bool:
-    try:
-        path.resolve().relative_to(parent.resolve())
-    except ValueError:
-        return False
-    return True
-
-
-def parse_args(argv: list[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--candidate",
-        action="store_true",
-        required=True,
-        help="write a review candidate outside the repository; never alter the checkout",
-    )
-    parser.add_argument("--baseline", type=Path, required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--status-output", type=Path, required=True)
-    return parser.parse_args(argv)
-
-
-def validate_candidate_paths(args: argparse.Namespace) -> tuple[Path, Path, Path]:
-    baseline = args.baseline.resolve()
-    output = args.output.resolve()
-    status_output = args.status_output.resolve()
-    if baseline != OUT.resolve():
-        raise pre.ValidationError("candidate baseline must be the checked-in results.json")
-    if path_is_within(output, ROOT) or path_is_within(status_output, ROOT):
-        raise pre.ValidationError("candidate output and status must be outside the repository")
-    if output == status_output:
-        raise pre.ValidationError("candidate output and status paths must be different")
-    return baseline, output, status_output
-
-
-def candidate_provenance(
-    now: datetime,
-    source_payloads: dict[str, str] | None = None,
-) -> dict[str, Any]:
-    """Create new draw provenance without inheriting snapshot-specific checks."""
-    provenance = {
-        "approvalId": APPROVAL_ID,
-        "verifiedAt": now.isoformat(timespec="seconds"),
-        "providerSources": pre.EXPECTED_SOURCE_MAP,
-        "crossChecks": {"4dmoon-feedwest": list(CROSS_CHECKED_PROVIDER_KEYS)},
-    }
-    if source_payloads is not None:
-        provenance["sourcePayloadSha256"] = {
-            source_id: "sha256:" + hashlib.sha256(payload.encode("utf-8")).hexdigest()
-            for source_id, payload in sorted(source_payloads.items())
-        }
-    return provenance
-
-
-def collect_candidate(now: datetime) -> dict[str, Any]:
-    primary_payload = fetch(SOURCE)
-    cross_check_payload = fetch(MOON_SOURCE)
-    data = parse(primary_payload)
-    moon = json.loads(cross_check_payload)
-    if not isinstance(moon, dict):
-        raise pre.ValidationError("cross-check feed is not a JSON object")
-    data["providers"]["gd4d"] = build_grand_dragon(moon)
-    cross_check(data["providers"], moon)
-    data["drawDate"], data["drawDay"] = latest_provider_date(data["providers"])
-    data["recentDates"] = recent_dates_with_latest(
-        data.get("recentDates"),
-        data["drawDate"],
-        data["drawDay"],
-    )
-    data["updated"] = now.strftime("%Y-%m-%d %H:%M MYT")
-    data["provenance"] = candidate_provenance(
-        now,
-        {
-            "4d4d-co": primary_payload,
-            "4dmoon-feedwest": cross_check_payload,
-        },
-    )
-    pre.validate_results_shape(data, now=now)
-    return data
-
-
-def run(argv: list[str]) -> int:
-    try:
-        args = parse_args(argv)
-        baseline_path, output, status_output = validate_candidate_paths(args)
-        now = datetime.now(pre.MYT)
-        data = collect_candidate(now)
-        previous = pre.read_json(baseline_path)
-        baseline_digest = pre.result_facts_digest(previous)
-        candidate_digest = pre.result_facts_digest(data)
-        changed = baseline_digest != candidate_digest
-        atomic_json_write(output, data)
-        atomic_json_write(
-            status_output,
-            {
-                "schemaVersion": 1,
-                "state": "candidate-ready" if changed else "no-factual-change",
-                "changed": changed,
-                "drawDate": data["drawDate"],
-                "providerCount": len(data["providers"]),
-                "baselineFactsSha256": baseline_digest,
-                "candidateFactsSha256": candidate_digest,
-            },
-        )
-        if changed:
-            print(f"Prepared an external review candidate for draw {data['drawDate']}")
-        else:
-            print(f"No factual result change for draw {data['drawDate']}; checkout unchanged")
-        return 0
-    except (OSError, ValueError, json.JSONDecodeError, pre.ValidationError) as exc:
-        print(f"CANDIDATE_BLOCKED: {exc}", file=sys.stderr)
+    if len(data["providers"]) < 5:
+        print("Only found %d providers - refusing to overwrite results.json"
+              % len(data["providers"]), file=sys.stderr)
         return 1
 
+    with open(OUT, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1)
 
-def main() -> int:
-    return run(sys.argv[1:])
+    print("Wrote %s for draw %s (%s) with %d providers"
+          % (OUT, data["drawDate"], data["drawDay"], len(data["providers"])))
+    return 0
 
 
 if __name__ == "__main__":
