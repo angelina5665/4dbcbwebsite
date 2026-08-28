@@ -28,14 +28,31 @@ jobs:
       - name: Fetch the latest results
         run: python scrape.py
 
+      - name: Prerender homepage results
+        run: node scripts/prerender-home.mjs
+
+      - name: Validate the generated homepage
+        run: |
+          node scripts/prerender-home.mjs --check
+          node --test scripts/prerender-home.test.mjs
+
       - name: Publish if anything changed
         run: |
-          if git diff --quiet results.json; then
+          unexpected="$(git diff --name-only | grep -Ev '^(index.html|results.json|sitemap.xml)$' || true)"
+          unexpected_untracked="$(git ls-files --others --exclude-standard)"
+          if [ -n "$unexpected" ] || [ -n "$unexpected_untracked" ]; then
+            echo "Unexpected generated files:"
+            echo "$unexpected"
+            echo "$unexpected_untracked"
+            exit 1
+          fi
+          if git diff --quiet -- results.json index.html sitemap.xml; then
             echo "No change in results - nothing to publish."
             exit 0
           fi
+          git diff --check
           git config user.name "4D VIP results bot"
           git config user.email "actions@github.com"
-          git add results.json
+          git add -- results.json index.html sitemap.xml
           git commit -m "Update results $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
