@@ -304,11 +304,11 @@ const STYLE = {
 };
 
 const LAYOUT = [
-  { title: "4D RESULT MALAYSIA", href: "malaysia-4d-result.html", bannerAfter: "afterMalaysia",
+  { title: "4D RESULT MALAYSIA", href: "/west-malaysia-4d-results/", bannerAfter: "afterMalaysia",
     items: [{ p: "gd4d" }, { p: "damacai" }, { p: "magnum" }, { p: "toto" }, { p: "totoextra" }, { p: "damacai13d" }] },
-  { title: "4D RESULT SINGAPORE", href: "singapore-4d-result.html", bannerAfter: "afterSingapore",
+  { title: "4D RESULT SINGAPORE", href: "#singapore-results", id: "singapore-results", bannerAfter: "afterSingapore",
     items: [{ p: "singapore" }, { banner: "singaporeRow" }] },
-  { title: "4D RESULT SABAH SARAWAK", href: "sarawak-4d-result.html", bannerAfter: "afterSabah",
+  { title: "4D RESULT SABAH SARAWAK", href: "/east-malaysia-4d-results/", bannerAfter: "afterSabah",
     items: [{ p: "sabah88" }, { p: "sandakan" }, { p: "cashsweep" }] }
 ];
 
@@ -463,7 +463,7 @@ function render(data) {
       const r = providers[it.p];
       return r ? cardHTML(it.p, r, data) : "";
     }).join("");
-    return '<div class="section-bar"><h2><a href="' + esc(sec.href) + '">' + esc(sec.title) + '</a></h2></div>' +
+    return '<div' + (sec.id ? ' id="' + esc(sec.id) + '"' : '') + ' class="section-bar"><h2><a href="' + esc(sec.href) + '">' + esc(sec.title) + '</a></h2></div>' +
       '<div class="row">' + items + '</div>' +
       (sec.bannerAfter ? bannerHTML(sec.bannerAfter) : "");
   }).join("");
