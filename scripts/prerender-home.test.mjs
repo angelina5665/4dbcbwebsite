@@ -18,6 +18,12 @@ function hash(value) {
   return crypto.createHash("sha256").update(value).digest("hex");
 }
 
+function drawTime(value) {
+  assert.match(value, /^\d{2}-\d{2}-\d{4}$/);
+  const [day, month, year] = value.split("-").map(Number);
+  return Date.UTC(year, month - 1, day);
+}
+
 function stripGenerated(html) {
   return html
     .replace(/(data-results-updated=")[^"]*(")/, "$1__GENERATED_SNAPSHOT__$2")
@@ -53,10 +59,18 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   ]);
   const results = JSON.parse(resultsText);
   const rawResults = generatedRegion(html);
+  const latestProvider = Object.values(results.providers)
+    .reduce((latest, provider) => drawTime(provider.drawDate) > drawTime(latest.drawDate) ? provider : latest);
   assert.ok(html.includes(`data-results-updated="${results.updated}"`));
+  assert.equal(results.drawDate, latestProvider.drawDate);
+  assert.equal(results.drawDay, latestProvider.drawDay);
+  assert.equal(results.recentDates[0], `${results.drawDate} (${results.drawDay})`);
+  assert.equal(results.providers.cashsweep.name, "Special Cash Sweep 4D");
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
   assert.match(html, /<h1><a href="\/west-malaysia-4d-results\/">4D RESULT MALAYSIA<\/a><\/h1>/);
   assert.equal((rawResults.match(/class="outerbox"/g) || []).length, Object.keys(results.providers).length);
+  assert.match(rawResults, /Special Cash Sweep 4D/);
+  assert.doesNotMatch(rawResults, /Cashsweep 4D|Cashweep 4D/);
   for (const provider of Object.values(results.providers)) {
     for (const value of [provider.first, provider.second, provider.third].filter(Boolean)) {
       assert.ok(rawResults.includes(String(value)), `missing raw-HTML result ${value}`);
