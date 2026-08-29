@@ -1,13 +1,13 @@
 {
- "drawDate": "26-08-2026",
- "drawDay": "Wed",
+ "drawDate": "27-08-2026",
+ "drawDay": "Thu",
  "recentDates": [
+  "27-08-2026 (Thu)",
   "26-08-2026 (Wed)",
   "23-08-2026 (Sun)",
   "22-08-2026 (Sat)",
   "19-08-2026 (Wed)",
-  "16-08-2026 (Sun)",
-  "15-08-2026 (Sat)"
+  "16-08-2026 (Sun)"
  ],
  "updated": "2026-08-28 04:06 MYT",
  "providers": {
@@ -382,7 +382,7 @@
    ]
   },
   "cashsweep": {
-   "name": "Cashweep 4D",
+   "name": "Special Cash Sweep 4D",
    "drawDate": "26-08-2026",
    "drawDay": "Wed",
    "drawNo": "5335-26",

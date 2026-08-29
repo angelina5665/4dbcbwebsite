@@ -25,6 +25,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Validate result normalization
+        run: python -m unittest scripts/test_scrape.py -v
+
       - name: Fetch the latest results
         run: python scrape.py
 
@@ -50,7 +53,7 @@ jobs:
             echo "No change in results - nothing to publish."
             exit 0
           fi
-          git diff --check
+          git -c core.whitespace=cr-at-eol diff --check
           git config user.name "4D VIP results bot"
           git config user.email "actions@github.com"
           git add -- results.json index.html sitemap.xml

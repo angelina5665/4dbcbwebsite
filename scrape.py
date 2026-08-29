@@ -30,7 +30,15 @@ PROVIDER_KEYS = {
     "Sandakan 4D": "sandakan",
     "Cashweep 4D": "cashsweep",
     "Cashsweep 4D": "cashsweep",
+    "Cash Sweep 4D": "cashsweep",
+    "Special Cash Sweep 4D": "cashsweep",
 }
+
+CANONICAL_PROVIDER_NAMES = {
+    "cashsweep": "Special Cash Sweep 4D",
+}
+
+DRAW_DATE_FORMAT = "%d-%m-%Y"
 
 
 def fetch(url):
@@ -66,7 +74,8 @@ def parse_card(block):
     if name not in PROVIDER_KEYS:
         return None, None
 
-    card = {"name": name}
+    key = PROVIDER_KEYS[name]
+    card = {"name": CANONICAL_PROVIDER_NAMES.get(key, name)}
 
     m = re.search(r"Date:\s*(\d{2}-\d{2}-\d{4})\s*\((\w{3})\)", block)
     if m:
@@ -85,8 +94,6 @@ def parse_card(block):
     co = section_after(block, "Consolation 安慰獎")
     if co:
         card["consolation"] = cells(co, "resultbottom")
-
-    key = PROVIDER_KEYS[name]
 
     if key == "sabah88" and len(tops) >= 6:
         # the 3D prizes follow the 4D prizes in the same card
@@ -167,6 +174,65 @@ def parse(html):
     }
 
 
+def validated_draw_date(value, day, label):
+    if not isinstance(value, str) or not re.fullmatch(r"\d{2}-\d{2}-\d{4}", value):
+        raise ValueError("%s has invalid draw date %r" % (label, value))
+    try:
+        parsed = datetime.strptime(value, DRAW_DATE_FORMAT)
+    except ValueError as error:
+        raise ValueError("%s has invalid draw date %r" % (label, value)) from error
+    expected_day = parsed.strftime("%a")
+    if day != expected_day:
+        raise ValueError("%s draw day %r does not match %r" % (label, day, expected_day))
+    return parsed
+
+
+def recent_dates_with_latest(values, latest_date, latest_day, limit=6):
+    latest = validated_draw_date(latest_date, latest_day, "latest provider")
+    dated_entries = {}
+    candidates = list(values or []) + [latest_date + " (" + latest_day + ")"]
+
+    for value in candidates:
+        match = re.fullmatch(r"(\d{2}-\d{2}-\d{4}) \(([A-Z][a-z]{2})\)", str(value))
+        if not match:
+            raise ValueError("invalid recent date %r" % value)
+        parsed = validated_draw_date(match.group(1), match.group(2), "recent date")
+        if parsed > latest:
+            raise ValueError("recent date %r is newer than the latest provider date" % value)
+        dated_entries[parsed.date()] = match.group(1) + " (" + match.group(2) + ")"
+
+    return [dated_entries[key] for key in sorted(dated_entries, reverse=True)[:limit]]
+
+
+def finalize_snapshot(data):
+    providers = data.get("providers")
+    if not isinstance(providers, dict) or not providers:
+        raise ValueError("snapshot has no providers")
+
+    dated_providers = []
+    for key, provider in providers.items():
+        if not isinstance(provider, dict):
+            raise ValueError("provider %r is invalid" % key)
+        if key in CANONICAL_PROVIDER_NAMES:
+            provider["name"] = CANONICAL_PROVIDER_NAMES[key]
+        parsed = validated_draw_date(
+            provider.get("drawDate"),
+            provider.get("drawDay"),
+            "provider %r" % key,
+        )
+        dated_providers.append((parsed, provider))
+
+    _latest_date, latest_provider = max(dated_providers, key=lambda item: item[0])
+    data["drawDate"] = latest_provider["drawDate"]
+    data["drawDay"] = latest_provider["drawDay"]
+    data["recentDates"] = recent_dates_with_latest(
+        data.get("recentDates", []),
+        data["drawDate"],
+        data["drawDay"],
+    )
+    return data
+
+
 def fetch_grand_dragon():
     """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
     raw = json.loads(fetch(GD_SOURCE))
@@ -202,6 +268,13 @@ def main():
     if len(data["providers"]) < 5:
         print("Only found %d providers - refusing to overwrite results.json"
               % len(data["providers"]), file=sys.stderr)
+        return 1
+
+    try:
+        finalize_snapshot(data)
+    except ValueError as error:
+        print("Invalid result snapshot (%s) - refusing to overwrite results.json"
+              % error, file=sys.stderr)
         return 1
 
     with open(OUT, "w", encoding="utf-8") as f:
