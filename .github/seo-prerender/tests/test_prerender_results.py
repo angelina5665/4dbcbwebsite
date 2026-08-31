@@ -436,8 +436,8 @@ class PolicyAndRenderingTests(unittest.TestCase):
             self.assertIn(number, homepage)
         self.assertIn('fetch("results.json", { cache: "no-cache" })', homepage)
         self.assertIn("sameGeneratedSnapshot", homepage)
-        self.assertIn("Latest published 4D result snapshot", homepage)
-        self.assertIn("Most recent recorded date in this published snapshot", homepage)
+        self.assertIn("Latest Malaysia 4D results", homepage)
+        self.assertIn("Most recent recorded draw date", homepage)
         self.assertNotIn("Latest completed 4D results", homepage)
         show_error = homepage.split("function showError()", 1)[1].split("fetch(", 1)[0]
         self.assertIn("showing the last generated results", show_error)
@@ -446,8 +446,8 @@ class PolicyAndRenderingTests(unittest.TestCase):
     def test_malay_page_uses_localized_dates_navigation_and_cautious_copy(self) -> None:
         planned = build_plan(current_results(), current_policy(), mode="staging")
         malay = planned[REPO_ROOT / "ms" / "index.html"]
-        self.assertIn("Keputusan 4D Malaysia: Snapshot Terkini Diterbitkan", malay)
-        self.assertIn("snapshot terakhir yang telah disemak dan diterbitkan", malay)
+        self.assertIn("Keputusan 4D Malaysia", malay)
+        self.assertIn("keputusan yang tersedia di 4DVIP88", malay)
         self.assertIn(build_site.malay_draw_date(current_results()["drawDate"], current_results()["drawDay"]), malay)
         self.assertIn(build_site.malay_updated(current_results()["updated"]), malay)
         self.assertIn('aria-label="Navigasi utama"', malay)
