@@ -138,7 +138,7 @@ let nextIndex = replaceBlock(
 nextIndex = replaceSnapshotAttribute(nextIndex, context.__escapeHTML(String(data.updated || "")));
 
 const h1Count = (nextIndex.match(/<h1\b/gi) || []).length;
-if (h1Count !== 1 || !nextIndex.includes("<h1><a href=\"/west-malaysia-4d-results/\">4D RESULT MALAYSIA</a></h1>")) {
+if (h1Count !== 1 || !nextIndex.includes("<h1><a href=\"/\">4D RESULT MALAYSIA</a></h1>")) {
   throw new Error("Expected the Malaysia section to be the single homepage H1");
 }
 
