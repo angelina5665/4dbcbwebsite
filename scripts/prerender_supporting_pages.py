@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep selected crawlable provider pages aligned with results.json."""
+"""Keep all current crawlable result pages aligned with results.json."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ import os
 import re
 import sys
 import tempfile
-from datetime import datetime
 from pathlib import Path
 from html.parser import HTMLParser
 from typing import Any
@@ -23,10 +22,12 @@ sys.path.insert(0, str(SEO_TOOL_DIR))
 import build_site as site  # noqa: E402
 
 
-TARGET_SLUGS = ("magnum-4d-results", "da-ma-cai-results", "special-cash-sweep-results")
-ALL_PROVIDER_CONFIGS = {config["slug"]: config for config in site.PROVIDER_PAGES}
-PROVIDER_CONFIGS = {slug: ALL_PROVIDER_CONFIGS[slug] for slug in TARGET_SLUGS}
-TARGET_PATHS = tuple(f"{slug}/index.html" for slug in TARGET_SLUGS)
+PROVIDER_CONFIGS = {config["slug"]: config for config in site.PROVIDER_PAGES}
+REGION_CONFIGS = {config["slug"]: config for config in site.REGION_PAGES}
+PROVIDER_PATHS = tuple(f"{slug}/index.html" for slug in PROVIDER_CONFIGS)
+REGION_PATHS = tuple(f"{slug}/index.html" for slug in REGION_CONFIGS)
+MALAY_PATH = "ms/index.html"
+TARGET_PATHS = PROVIDER_PATHS + REGION_PATHS + (MALAY_PATH,)
 
 
 class SupportingPageError(RuntimeError):
@@ -45,11 +46,25 @@ def normalize_eol(value: str) -> str:
 
 
 def result_region_pattern(relative_path: str) -> re.Pattern[str]:
-    return re.compile(
-        r'<section class="content-card"><h2>Latest completed result</h2>.*?</section>'
-        r'(?=<section class="content-card"><h2>What this result page covers</h2>)',
-        re.S,
-    )
+    if relative_path in PROVIDER_PATHS:
+        pattern = (
+            r'<section class="content-card"><h2>Latest completed result</h2>.*?</section>'
+            r'(?=<section class="content-card"><h2>What this result page covers</h2>)'
+        )
+    elif relative_path in REGION_PATHS:
+        pattern = (
+            r'<section class="content-card"><h2>Provider comparison</h2>.*?</section>'
+            r'(?=<section class="content-card"><h2>What this regional page covers</h2>)'
+        )
+    elif relative_path == MALAY_PATH:
+        pattern = (
+            r'<div class="status-box">.*?</div>\s*'
+            r'<div class="results-grid">.*?</div>\s*'
+            r'(?=<h2>Cara membaca keputusan</h2>)'
+        )
+    else:
+        raise SupportingPageError(f"no generated-region guard for {relative_path}")
+    return re.compile(pattern, re.S)
 
 
 def result_region(document: str, relative_path: str) -> str:
@@ -109,66 +124,7 @@ def require_unchanged_shell(current: str, generated: str, relative_path: str) ->
 
 
 def validate_target_results(results: dict[str, Any]) -> None:
-    providers = results.get("providers")
-    if not isinstance(providers, dict):
-        raise site.pre.ValidationError("results.providers must be an object")
-    required = tuple(key for config in PROVIDER_CONFIGS.values() for key in config["keys"])
-    missing = [key for key in required if key not in providers]
-    if missing:
-        raise site.pre.ValidationError("missing target providers: " + ", ".join(missing))
-
-    reference_now = datetime.now(site.pre.MYT)
-    provider_dates: dict[str, datetime] = {}
-    for key in required:
-        provider = providers[key]
-        if not isinstance(provider, dict):
-            raise site.pre.ValidationError(f"provider {key!r} is not an object")
-        if not isinstance(provider.get("name"), str) or not provider["name"].strip():
-            raise site.pre.ValidationError(f"provider {key!r} missing name")
-        provider_date = site.pre.parse_draw_date(provider.get("drawDate"))
-        provider_dates[key] = provider_date
-        site.pre.validate_weekday(provider_date, provider.get("drawDay"), label=f"provider {key!r}")
-        if not isinstance(provider.get("drawNo"), str) or not provider["drawNo"].strip():
-            raise site.pre.ValidationError(f"provider {key!r} missing drawNo")
-        age = reference_now.date() - provider_date.date()
-        if age.days < 0:
-            raise site.pre.ValidationError(f"provider {key!r} has a future draw date")
-        if age.days > site.pre.MAX_RESULT_AGE_DAYS:
-            raise site.pre.ValidationError(
-                f"provider {key!r} result is more than {site.pre.MAX_RESULT_AGE_DAYS} days old"
-            )
-
-        number_pattern = r"\d{3}\s\d{3}" if key == "damacai13d" else r"\d{4}"
-        for field in ("first", "second", "third"):
-            value = provider.get(field)
-            if not isinstance(value, str) or re.fullmatch(number_pattern, value.strip()) is None:
-                raise site.pre.ValidationError(f"provider {key!r} has invalid {field} result")
-        site.pre.validate_number_list(key, provider, "special", number_pattern)
-        site.pre.validate_number_list(key, provider, "consolation", number_pattern)
-
-        if key == "damacai13d":
-            rows = provider.get("d3rows")
-            if not isinstance(rows, list) or len(rows) != 3:
-                raise site.pre.ValidationError("damacai13d d3rows must contain three entries")
-            for index, row in enumerate(rows):
-                expected_value = provider[("first", "second", "third")[index]]
-                if not isinstance(row, dict) or row.get("value") != expected_value:
-                    raise site.pre.ValidationError("damacai13d d3rows do not match the top results")
-                if not isinstance(row.get("zodiac"), str) or re.fullmatch(r"[A-Z ]+", row["zodiac"]) is None:
-                    raise site.pre.ValidationError("damacai13d zodiac value is invalid")
-                if not isinstance(row.get("bonus"), str) or re.fullmatch(r"RM\s[\d,]+\.\d{2}", row["bonus"]) is None:
-                    raise site.pre.ValidationError("damacai13d bonus value is invalid")
-
-    if provider_dates["damacai"].date() != provider_dates["damacai13d"].date():
-        raise site.pre.ValidationError("Da Ma Cai 4D and 1+3D result dates do not match")
-    if providers["damacai"].get("drawNo") != providers["damacai13d"].get("drawNo"):
-        raise site.pre.ValidationError("Da Ma Cai 4D and 1+3D draw numbers do not match")
-
-    updated = site.pre.parse_updated(results.get("updated"))
-    if updated > reference_now + site.pre.MAX_CLOCK_SKEW:
-        raise site.pre.ValidationError("updated timestamp is in the future")
-    if updated.date() < max(provider_dates.values()).date():
-        raise site.pre.ValidationError("updated timestamp predates the newest target-provider result")
+    site.pre.validate_results_shape(results)
 
 
 def render_targets(results: dict[str, Any]) -> dict[str, str]:
@@ -176,6 +132,9 @@ def render_targets(results: dict[str, Any]) -> dict[str, str]:
     rendered: dict[str, str] = {}
     for slug, config in PROVIDER_CONFIGS.items():
         rendered[f"{slug}/index.html"] = site.provider_page(results, config)
+    for slug, config in REGION_CONFIGS.items():
+        rendered[f"{slug}/index.html"] = site.region_page(results, config)
+    rendered[MALAY_PATH] = site.malay_page(results)
     return rendered
 
 

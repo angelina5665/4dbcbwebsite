@@ -137,6 +137,16 @@ REGION_PAGES = (
     },
 )
 
+MALAY_PROVIDER_KEYS = (
+    "toto",
+    "magnum",
+    "damacai",
+    "gd4d",
+    "sabah88",
+    "sandakan",
+    "cashsweep",
+)
+
 
 def esc(value: Any) -> str:
     return html.escape(str(value if value is not None else ""), quote=True)
@@ -591,7 +601,7 @@ def malay_updated(value: Any) -> str:
 def malay_page(results: dict[str, Any]) -> str:
     cards = "".join(
         malay_card(key, results["providers"][key])
-        for key in ("toto", "magnum", "damacai", "gd4d", "sabah88", "sandakan", "cashsweep")
+        for key in MALAY_PROVIDER_KEYS
     )
     draw_date = malay_draw_date(results["drawDate"], results["drawDay"])
     updated = malay_updated(results["updated"])
