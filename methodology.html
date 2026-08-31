@@ -22,9 +22,9 @@
   <ol>
     <li>A scheduled script requests result information from two authorised third-party aggregation endpoints.</li>
     <li>It requires the complete reviewed provider set and cross-checks Magnum, Da Ma Cai and Sports Toto fields between the feeds, including draw metadata and Sports Toto extended results.</li>
-    <li>For the retained 23 August 2026 snapshot, the remaining providers were checked on provider-owned or operator-family surfaces and separate dated publishers. Each manual record is bound to the exact provider object with its draw date, draw number where available and a SHA-256 digest.</li>
+    <li>For the retained 23 August 2026 result record, the remaining providers were checked on provider-owned or operator-family surfaces and separate dated publishers. Each manual record is bound to the exact provider object with its draw date, draw number where available and a SHA-256 digest.</li>
     <li>Exact number lengths, result counts, weekdays, related draw numbers, product-specific fields and a seven-day freshness limit must pass before <code>results.json</code> can be replaced atomically.</li>
-    <li>The same validated snapshot generates crawlable homepage, provider and regional HTML. A dated archive includes only provider records whose own draw date matches its URL. Browser JavaScript is progressive enhancement; a JSON failure leaves the last generated result visible.</li>
+    <li>The same validated result data generates crawlable homepage, provider and regional HTML. A dated archive includes only provider records whose own draw date matches its URL. Browser JavaScript is progressive enhancement; a JSON failure leaves the last generated result visible.</li>
     <li>A timestamp-only check does not rewrite the data file or trigger a deployment.</li>
   </ol>
 
@@ -35,14 +35,14 @@
 
   <h2>Current verification record</h2>
   <p>The generated data records a dated approval identifier, verification time, source mapping and the exact providers included in an automated cross-check. The 24 August 2026 staging review found agreement across the authorised feeds for Magnum, Da Ma Cai and Sports Toto. Cash Sweep, Sabah 88, Sandakan STC and Singapore Pools matched provider-owned and separate dated pages. Grand Dragon matched operator-family surfaces and two separate dated publishers; their undisclosed upstream lineage cannot be proven from public pages alone.</p>
-  <p>Those manual records apply only to the exact 23 August snapshot and are deliberately removed by the next accepted scrape. Grand Dragon and the regional records still do not have repeatable automated second-source coverage.</p>
-  <p>The site owner approved live publication of the reviewed Batch 2-3 snapshot on 24 August 2026. The checked-in policy permits the approved sources only through the fail-closed publication mode. Dated manual verification remains bound to this exact snapshot and does not carry forward to a future changed draw.</p>
+  <p>Those manual records apply only to the exact 23 August result record and are deliberately removed by the next accepted scrape. Grand Dragon and the regional records still do not have repeatable automated second-source coverage.</p>
+  <p>The site owner approved live publication of the reviewed Batch 2-3 result set on 24 August 2026. The checked-in policy permits the approved sources only through the fail-closed publication mode. Dated manual verification remains bound to this exact result set and does not carry forward to a future changed draw.</p>
 
   <h2>Corrections and stale data</h2>
-  <p>If either source is unavailable, a required provider is missing, compared sources disagree, or a date or number fails validation, the import refuses to overwrite the last-known-good snapshot. The automated job regenerates only the newest completed draw. Correcting an older retained archive requires verified retained source data and a dated manual rebuild of its existing URL rather than a duplicate page.</p>
+  <p>If either source is unavailable, a required provider is missing, compared sources disagree, or a date or number fails validation, the import refuses to overwrite the last-known-good results. The automated job regenerates only the newest completed draw. Correcting an older retained archive requires verified retained source data and a dated manual rebuild of its existing URL rather than a duplicate page.</p>
 
   <h2>Publication standard</h2>
-  <p>Result pages must add useful context, clear freshness information, internal navigation and correction handling. Dated archives are created only for completed snapshots actually retained by the site. The site does not create empty future dates, spelling-variant doorways or mass-produced provider-and-date combinations.</p>
+  <p>Result pages must add useful context, clear freshness information, internal navigation and correction handling. Dated archives are created only for completed results actually retained by the site. The site does not create empty future dates, spelling-variant doorways or mass-produced provider-and-date combinations.</p>
 </article>
 </main>
 <footer><nav aria-label="Footer"><a href="/">Home</a><a href="/about.html">About</a><a href="/privacy.html">Privacy</a><a href="/disclaimer.html">Disclaimer</a><a href="/affiliate-disclosure.html">Affiliate Disclosure</a><a href="/sitemap.xml">Sitemap</a></nav></footer>

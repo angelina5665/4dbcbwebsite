@@ -376,14 +376,14 @@ def archive_page(results: dict[str, Any], iso_date: str) -> str:
     body += (
         '<section class="content-card"><h2>Archive scope</h2>'
         '<p>This dated page includes only provider records whose own draw date matches the date in this URL. Providers with a different schedule or draw date are not relabelled to fit the archive.</p>'
-        '<p>Older snapshots are retained as files. If an older draw needs a correction, verified retained source data and a dated manual rebuild are required; the current automated job regenerates only its newest completed draw.</p>'
+        '<p>Older result archives are retained as files. If an older draw needs a correction, verified retained source data and a dated manual rebuild are required; the current automated job regenerates only its newest completed draw.</p>'
         '<p><a href="/past-results/">Browse available past results.</a></p></section>'
     )
     return page_document(
         title=f"Malaysia 4D Results for {display_date} | 4DVIP88",
         description=f"Recorded Malaysia 4D results for {display_date}, including provider draw dates, numbers and source-status guidance.",
         path=path, h1=f"Malaysia 4D Results: {display_date}",
-        lead="A retained snapshot containing only provider results recorded with this draw date.",
+        lead="An archive containing only provider results recorded with this draw date.",
         body=body, current="history",
         crumbs=[("Home", "/"), ("Past results", "/past-results/"), (display_date, path)],
     )
@@ -491,10 +491,10 @@ def past_results_page(dates: list[str]) -> str:
     body = (
         '<section class="content-card"><h2>Available completed draw archives</h2>'
         f'<ul class="archive-list">{links}</ul>'
-        '<p>The archive includes only result snapshots actually retained by this website; 4DVIP88 does not invent earlier records from dates alone.</p>'
+        '<p>The archive includes only completed result records retained by this website; 4DVIP88 does not invent earlier records from dates alone.</p>'
         '<h2>What a dated archive contains</h2>'
         '<p>Each archive URL represents one completed draw date and includes only provider records carrying that same date. Providers can follow different schedules, so an older provider record is not relabelled to make a date page look more complete.</p>'
-        '<p>The page preserves the provider name, its draw date, available draw number and the result categories stored in the verified snapshot. The date in the URL describes the draw; the separate update timestamp records when the retained website file changed.</p>'
+        '<p>The page preserves the provider name, its draw date, available draw number and the result categories stored in the verified result record. The date in the URL describes the draw; the separate update timestamp records when the retained website file changed.</p>'
         '<h2>How to use the history carefully</h2>'
         '<ol><li>Open the required completed date.</li><li>Find the named provider and confirm its draw number.</li><li>Keep each number with its top, special or consolation label.</li><li>Verify important historical information with the relevant provider.</li></ol>'
         '<p>An older correction requires retained source evidence and a dated manual rebuild of the same archive URL. The site does not create empty future dates, spelling variants or mass provider-and-date doorway combinations.</p>'
@@ -504,7 +504,7 @@ def past_results_page(dates: list[str]) -> str:
         title="Malaysia 4D Past Results and History | 4DVIP88",
         description="Browse retained Malaysia 4D past results by genuine completed draw date, with provider details and source guidance.",
         path="/past-results/", h1="Malaysia 4D Past Results",
-        lead="Browse completed result snapshots that the website has actually retained.",
+        lead="Browse completed result archives retained by this website.",
         body=body, current="history",
     )
 
@@ -521,7 +521,7 @@ def prize_guide_page() -> str:
       <tr><th scope="row">First, second and third prize</th><td>The three top result-number positions for the named draw.</td><td>Match the exact number, including any leading zero, and keep it with its displayed position.</td></tr>
       <tr><th scope="row">Special</th><td>A separate group of published result numbers.</td><td>Do not treat a special number as a top-three result.</td></tr>
       <tr><th scope="row">Consolation</th><td>Another separately labelled group of result numbers.</td><td>Keep the category label when recording or comparing the result.</td></tr>
-      <tr><th scope="row">3D, 5D, 6D or lotto</th><td>Product-specific formats shown only when present in the retained source snapshot.</td><td>Use that product's own labels and rules; these fields are not ordinary 4D categories.</td></tr>
+      <tr><th scope="row">3D, 5D, 6D or lotto</th><td>Product-specific formats shown only when present in the retained source data.</td><td>Use that product's own labels and rules; these fields are not ordinary 4D categories.</td></tr>
     </tbody>
   </table>
   <h2>Why fixed prize amounts are not listed here</h2>
@@ -597,10 +597,10 @@ def malay_page(results: dict[str, Any]) -> str:
     updated = malay_updated(results["updated"])
     body = f"""
 <section class="content-card">
-  <h2>Snapshot keputusan 4D terkini yang diterbitkan</h2>
-  <p>Jika anda mencari keputusan 4D hari ini, semak tarikh cabutan yang dipaparkan terlebih dahulu. Halaman ini menunjukkan snapshot terakhir yang telah disemak dan diterbitkan oleh 4DVIP88, bukan keputusan masa nyata atau jaminan bahawa setiap penyedia mempunyai cabutan pada hari yang sama.</p>
+  <h2>Keputusan 4D mengikut penyedia</h2>
+  <p>Jika anda mencari keputusan 4D hari ini, semak tarikh cabutan yang dipaparkan terlebih dahulu. Halaman ini memaparkan keputusan yang tersedia di 4DVIP88, bukan keputusan masa nyata atau jaminan bahawa setiap penyedia mempunyai cabutan pada hari yang sama.</p>
   <p>Keputusan Sports Toto, Magnum 4D, Da Ma Cai, Grand Dragon, Sabah 88, Sandakan STC dan Special Cash Sweep dipaparkan mengikut penyedia dan tarikh cabutan masing-masing.</p>
-  <div class="status-box"><p><strong>Tarikh terkini dalam snapshot diterbitkan:</strong> {esc(draw_date)}</p><p><strong>Masa kemas kini data:</strong> {esc(updated)}</p></div>
+  <div class="status-box"><p><strong>Tarikh keputusan terkini yang dipaparkan:</strong> {esc(draw_date)}</p><p><strong>Masa kemas kini data:</strong> {esc(updated)}</p></div>
   <div class="results-grid">{cards}</div>
   <h2>Cara membaca keputusan</h2>
   <p>Pastikan nama penyedia dan tarikh cabutan sepadan sebelum membandingkan nombor. Hadiah pertama, kedua, ketiga, khas dan saguhati ialah kategori yang berbeza. Sifar di hadapan nombor perlu dikekalkan.</p>
@@ -612,10 +612,10 @@ def malay_page(results: dict[str, Any]) -> str:
   <p class="language-switch"><a href="/" hreflang="en-MY">Lihat halaman ini dalam bahasa Inggeris</a></p>
 </section>"""
     return page_document(
-        title="Keputusan 4D Malaysia | Snapshot Terkini Diterbitkan | 4DVIP88",
-        description="Semak snapshot keputusan 4D terkini yang diterbitkan untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia lain, bersama tarikh cabutan dan masa kemas kini.",
-        path="/ms/", h1="Keputusan 4D Malaysia: Snapshot Terkini Diterbitkan",
-        lead="Semak snapshot terakhir yang telah disemak dan diterbitkan untuk penyedia 4D utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
+        title="Keputusan 4D Malaysia | 4DVIP88",
+        description="Semak keputusan 4D Malaysia terkini untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia lain, bersama tarikh cabutan dan masa kemas kini.",
+        path="/ms/", h1="Keputusan 4D Malaysia",
+        lead="Semak keputusan 4D bagi penyedia utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
         body=body, current="ms", language="ms-MY", hreflang=True,
         crumbs=[("Utama", "/"), ("Keputusan 4D", "/ms/")],
     )

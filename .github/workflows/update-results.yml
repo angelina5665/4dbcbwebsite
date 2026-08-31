@@ -34,14 +34,23 @@ jobs:
       - name: Prerender homepage results
         run: node scripts/prerender-home.mjs
 
+      - name: Prerender crawlable supporting pages
+        run: python scripts/prerender_supporting_pages.py
+
       - name: Validate the generated homepage
         run: |
           node scripts/prerender-home.mjs --check
           node --test scripts/prerender-home.test.mjs
 
+      - name: Validate the generated supporting pages
+        run: |
+          python scripts/prerender_supporting_pages.py --check
+          python -m unittest scripts/test_prerender_supporting_pages.py -v
+
       - name: Publish if anything changed
         run: |
-          unexpected="$(git diff --name-only | grep -Ev '^(index.html|results.json|sitemap.xml)$' || true)"
+          expected='^(index\.html|results\.json|sitemap\.xml|(magnum-4d-results|da-ma-cai-results|special-cash-sweep-results)/index\.html)$'
+          unexpected="$(git diff --name-only | grep -Ev "$expected" || true)"
           unexpected_untracked="$(git ls-files --others --exclude-standard)"
           if [ -n "$unexpected" ] || [ -n "$unexpected_untracked" ]; then
             echo "Unexpected generated files:"
@@ -49,13 +58,14 @@ jobs:
             echo "$unexpected_untracked"
             exit 1
           fi
-          if git diff --quiet -- results.json index.html sitemap.xml; then
+          generated=(results.json index.html sitemap.xml magnum-4d-results/index.html da-ma-cai-results/index.html special-cash-sweep-results/index.html)
+          if git diff --quiet -- "${generated[@]}"; then
             echo "No change in results - nothing to publish."
             exit 0
           fi
           git -c core.whitespace=cr-at-eol diff --check
           git config user.name "4D VIP results bot"
           git config user.email "actions@github.com"
-          git add -- results.json index.html sitemap.xml
+          git add -- "${generated[@]}"
           git commit -m "Update results $(date -u '+%Y-%m-%d %H:%M UTC')"
           git push
