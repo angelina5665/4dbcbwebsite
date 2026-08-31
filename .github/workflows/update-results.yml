@@ -49,7 +49,7 @@ jobs:
 
       - name: Publish if anything changed
         run: |
-          expected='^(index\.html|results\.json|sitemap\.xml|(magnum-4d-results|da-ma-cai-results|special-cash-sweep-results)/index\.html)$'
+          expected='^(index\.html|results\.json|sitemap\.xml|(magnum-4d-results|sports-toto-4d-results|da-ma-cai-results|sabah-88-4d-results|special-cash-sweep-results|sandakan-stc-4d-results|west-malaysia-4d-results|east-malaysia-4d-results)/index\.html|ms/index\.html)$'
           unexpected="$(git diff --name-only | grep -Ev "$expected" || true)"
           unexpected_untracked="$(git ls-files --others --exclude-standard)"
           if [ -n "$unexpected" ] || [ -n "$unexpected_untracked" ]; then
@@ -58,7 +58,7 @@ jobs:
             echo "$unexpected_untracked"
             exit 1
           fi
-          generated=(results.json index.html sitemap.xml magnum-4d-results/index.html da-ma-cai-results/index.html special-cash-sweep-results/index.html)
+          generated=(results.json index.html sitemap.xml magnum-4d-results/index.html sports-toto-4d-results/index.html da-ma-cai-results/index.html sabah-88-4d-results/index.html special-cash-sweep-results/index.html sandakan-stc-4d-results/index.html west-malaysia-4d-results/index.html east-malaysia-4d-results/index.html ms/index.html)
           if git diff --quiet -- "${generated[@]}"; then
             echo "No change in results - nothing to publish."
             exit 0
