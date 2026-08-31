@@ -76,7 +76,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal(results.recentDates[0], `${results.drawDate} (${results.drawDay})`);
   assert.equal(results.providers.cashsweep.name, "Special Cash Sweep 4D");
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
-  assert.match(html, /<h1><a href="\/west-malaysia-4d-results\/">4D RESULT MALAYSIA<\/a><\/h1>/);
+  assert.match(html, /<h1><a href="\/">4D RESULT MALAYSIA<\/a><\/h1>/);
   assert.equal((rawResults.match(/class="outerbox"/g) || []).length, Object.keys(results.providers).length);
   assert.match(rawResults, /Special Cash Sweep 4D/);
   assert.doesNotMatch(rawResults, /Cashsweep 4D|Cashweep 4D/);
