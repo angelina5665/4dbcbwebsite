@@ -789,9 +789,9 @@ def render_results_fragment(results: dict[str, Any]) -> str:
         ("Additional result reference", ("singapore",)),
     )
     lines = ['<section class="prerendered-results" aria-labelledby="results-heading">']
-    lines.append('  <h2 id="results-heading">Latest published 4D result snapshot</h2>')
+    lines.append('  <h2 id="results-heading">Latest Malaysia 4D results</h2>')
     lines.append(
-        f'  <p class="result-status">Most recent recorded date in this published snapshot: {esc(results["drawDate"])}. '
+        f'  <p class="result-status">Most recent recorded draw date: {esc(results["drawDate"])}. '
         f'Data file updated {esc(results["updated"])}. Verify important results with the relevant provider.</p>'
     )
     rendered_keys: set[str] = set()
