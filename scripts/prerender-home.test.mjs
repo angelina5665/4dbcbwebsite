@@ -59,8 +59,17 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   ]);
   const results = JSON.parse(resultsText);
   const rawResults = generatedRegion(html);
+  const websiteSchemaMatch = html.match(/<script type="application\/ld\+json">\s*({[^<]+})\s*<\/script>/);
+  assert.ok(websiteSchemaMatch, "homepage WebSite schema is missing");
+  const websiteSchema = JSON.parse(websiteSchemaMatch[1]);
   const latestProvider = Object.values(results.providers)
     .reduce((latest, provider) => drawTime(provider.drawDate) > drawTime(latest.drawDate) ? provider : latest);
+  assert.match(html, /<title>Malaysia 4D Results \| 4DVIP88<\/title>/);
+  assert.match(html, /<meta name="description" content="[^"]*4DVIP88[^"]*">/);
+  assert.match(html, /<meta property="og:site_name" content="4DVIP88">/);
+  assert.equal(websiteSchema.name, "4DVIP88");
+  assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
+  assert.equal(websiteSchema.url, "https://4dvip88.com/");
   assert.ok(html.includes(`data-results-updated="${results.updated}"`));
   assert.equal(results.drawDate, latestProvider.drawDate);
   assert.equal(results.drawDay, latestProvider.drawDay);
