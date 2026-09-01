@@ -67,6 +67,10 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.match(html, /<title>Malaysia 4D Results \| 4DVIP88<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]*4DVIP88[^"]*">/);
   assert.match(html, /<meta property="og:site_name" content="4DVIP88">/);
+  assert.match(html, /<link rel="alternate" hreflang="en-MY" href="https:\/\/4dvip88\.com\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="ms-MY" href="https:\/\/4dvip88\.com\/ms\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/4dvip88\.com\/">/);
+  assert.equal((html.match(/<link rel="alternate" hreflang=/g) || []).length, 3);
   assert.equal(websiteSchema.name, "4DVIP88");
   assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
   assert.equal(websiteSchema.url, "https://4dvip88.com/");
@@ -80,6 +84,22 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal((rawResults.match(/class="outerbox"/g) || []).length, Object.keys(results.providers).length);
   assert.match(rawResults, /Special Cash Sweep 4D/);
   assert.doesNotMatch(rawResults, /Cashsweep 4D|Cashweep 4D/);
+  const providerLinks = [
+    ["Damacai 4D", "/da-ma-cai-results/"],
+    ["Da Ma Cai 1+3D", "/da-ma-cai-results/"],
+    ["Magnum 4D", "/magnum-4d-results/"],
+    ["Toto 4D", "/sports-toto-4d-results/"],
+    ["SportsToto 5D, 6D, Lotto", "/sports-toto-4d-results/"],
+    ["Sabah88 4D", "/sabah-88-4d-results/"],
+    ["Sandakan 4D", "/sandakan-stc-4d-results/"],
+    ["Special Cash Sweep 4D", "/special-cash-sweep-results/"],
+  ];
+  for (const [name, href] of providerLinks) {
+    const anchor = `<a class="providerlink" href="${href}">${name}</a>`;
+    assert.equal(rawResults.split(anchor).length - 1, 1, `missing or duplicated provider link ${name}`);
+  }
+  assert.doesNotMatch(rawResults, /<a class="providerlink"[^>]*>Grand Dragon 4D<\/a>/);
+  assert.doesNotMatch(rawResults, /<a class="providerlink"[^>]*>Singapore 4D<\/a>/);
   for (const provider of Object.values(results.providers)) {
     for (const value of [provider.first, provider.second, provider.third].filter(Boolean)) {
       assert.ok(rawResults.includes(String(value)), `missing raw-HTML result ${value}`);
