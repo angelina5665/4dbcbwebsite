@@ -82,8 +82,8 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
   assert.match(html, /<h1><a href="\/">4D RESULT MALAYSIA<\/a><\/h1>/);
   assert.equal((rawResults.match(/class="outerbox"/g) || []).length, Object.keys(results.providers).length);
-  assert.match(rawResults, /Special Cash Sweep 4D/);
-  assert.doesNotMatch(rawResults, /Cashsweep 4D|Cashweep 4D/);
+  assert.match(rawResults, /Cashsweep 4D/);
+  assert.doesNotMatch(rawResults, /Special Cash Sweep 4D|Cashweep 4D/);
   const providerLinks = [
     ["Damacai 4D", "/da-ma-cai-results/"],
     ["Da Ma Cai 1+3D", "/da-ma-cai-results/"],
@@ -92,7 +92,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
     ["SportsToto 5D, 6D, Lotto", "/sports-toto-4d-results/"],
     ["Sabah88 4D", "/sabah-88-4d-results/"],
     ["Sandakan 4D", "/sandakan-stc-4d-results/"],
-    ["Special Cash Sweep 4D", "/special-cash-sweep-results/"],
+    ["Cashsweep 4D", "/special-cash-sweep-results/"],
   ];
   for (const [name, href] of providerLinks) {
     const anchor = `<a class="providerlink" href="${href}">${name}</a>`;
@@ -106,6 +106,63 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
     }
   }
   assert.match(sitemap, new RegExp(`<loc>https://4dvip88\\.com/</loc>\\s*<lastmod>${results.updated.slice(0, 10)}</lastmod>`));
+});
+
+test("homepage retains the current brand icon tags and valid icon assets", async () => {
+  const html = await fs.readFile(path.join(repo, "index.html"), "utf8");
+  assert.match(html, /<link rel="icon" type="image\/png" sizes="64x64" href="favicon\.png\?v=1">/);
+  assert.match(html, /<link rel="apple-touch-icon" href="apple-touch-icon\.png\?v=1">/);
+  for (const [name, dimension] of [["favicon.png", 64], ["apple-touch-icon.png", 180]]) {
+    const icon = await fs.readFile(path.join(repo, name));
+    assert.deepEqual(icon.subarray(0, 8), Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), `${name} is not a PNG`);
+    assert.equal(icon.toString("ascii", 12, 16), "IHDR", `${name} is missing its PNG header`);
+    assert.equal(icon.readUInt32BE(16), dimension, `${name} width changed`);
+    assert.equal(icon.readUInt32BE(20), dimension, `${name} height changed`);
+  }
+});
+
+test("generated category headings link to existing pages or a real in-page section", async () => {
+  const html = await fs.readFile(path.join(repo, "index.html"), "utf8");
+  const rawResults = generatedRegion(html);
+  const sections = [
+    ["4D RESULT MALAYSIA", "/"],
+    ["4D RESULT SINGAPORE", "#singapore-results"],
+    ["4D RESULT SABAH SARAWAK", "/east-malaysia-4d-results/"],
+  ];
+  for (const [title, href] of sections) {
+    const anchor = `<a href="${href}">${title}</a>`;
+    assert.equal(rawResults.split(anchor).length - 1, 1, `missing or duplicated section link ${title}`);
+    if (href.startsWith("#")) {
+      assert.equal(rawResults.split(`id="${href.slice(1)}"`).length - 1, 1, `missing section target ${href}`);
+    } else {
+      await fs.access(path.join(repo, href.slice(1), "index.html"));
+    }
+  }
+  assert.doesNotMatch(rawResults, /href="\/?(?:malaysia|singapore|sarawak)-4d-result\.html"/);
+});
+
+test("raw cards retain each provider's draw date and day rather than the overall date", async (t) => {
+  const target = await makeFixture(t);
+  const resultsPath = path.join(target, "results.json");
+  const results = JSON.parse(await fs.readFile(resultsPath, "utf8"));
+  // Deliberately different from every provider date: the overall label must not
+  // replace the dates attached to the individual result records.
+  results.drawDate = "31-12-2099";
+  results.drawDay = "Thu";
+  await fs.writeFile(resultsPath, JSON.stringify(results), "utf8");
+  const run = runGenerator(target);
+  assert.equal(run.status, 0, run.stderr || run.stdout);
+  const rawResults = generatedRegion(await fs.readFile(path.join(target, "index.html"), "utf8"));
+  const cards = new Map(
+    rawResults.split('<div class="outerbox" id="card-').slice(1)
+      .map((card) => [card.slice(0, card.indexOf('"')), card.split('<td class="resultdrawdate" style="text-align:right">')[0]])
+  );
+  for (const [key, provider] of Object.entries(results.providers)) {
+    const card = cards.get(key);
+    assert.ok(card, `missing raw card ${key}`);
+    assert.ok(card.includes(`Date: ${provider.drawDate} (${provider.drawDay})`), `wrong provider date/day in ${key}`);
+    assert.ok(!card.includes(results.drawDate), `overall draw date leaked into ${key}`);
+  }
 });
 
 test("generation changes only bounded regions and is idempotent", async (t) => {
@@ -148,6 +205,24 @@ test("an incomplete provider set fails before generated files are written", asyn
   const after = await Promise.all(guarded.map((name) => fs.readFile(path.join(target, name))));
   assert.deepEqual(after.map(hash), before.map(hash));
 });
+
+for (const marker of ["/* PRERENDER_CORE_START */", "/* PRERENDER_CORE_END */"]) {
+  test(`missing ${marker} fails before generated files are written`, async (t) => {
+    const target = await makeFixture(t);
+    const indexPath = path.join(target, "index.html");
+    const source = await fs.readFile(indexPath, "utf8");
+    assert.ok(source.includes(marker), `fixture has no ${marker} to remove`);
+    await fs.writeFile(indexPath, source.replace(marker, ""), "utf8");
+    const guarded = ["index.html", "sitemap.xml"];
+    const before = await Promise.all(guarded.map((name) => fs.readFile(path.join(target, name))));
+    const run = runGenerator(target);
+    assert.notEqual(run.status, 0);
+    assert.ok(run.stderr.includes(`Expected exactly one ${marker} marker`), run.stderr);
+    const after = await Promise.all(guarded.map((name) => fs.readFile(path.join(target, name))));
+    assert.deepEqual(after.map(hash), before.map(hash));
+    assert.deepEqual((await fs.readdir(target)).sort(), ["index.html", "results.json", "sitemap.xml"]);
+  });
+}
 
 test("runtime preserves prerendered cards when the refresh request fails", async () => {
   const html = await fs.readFile(path.join(repo, "index.html"), "utf8");
