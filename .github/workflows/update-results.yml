@@ -2,10 +2,10 @@ name: Update 4D results
 
 on:
   schedule:
-    # every 15 minutes from 6pm to midnight Malaysia time (10:00-16:00 UTC)
-    - cron: "*/15 10-16 * * *"
-    # one catch-up run each morning
-    - cron: "0 1 * * *"
+    # every 15 minutes from 6:07pm to 12:52am Malaysia time, offset from busy clock boundaries
+    - cron: "7,22,37,52 10-16 * * *"
+    # one off-boundary catch-up run each morning at 9:11am Malaysia time
+    - cron: "11 1 * * *"
   workflow_dispatch:
 
 permissions:
