@@ -188,7 +188,7 @@ class SupportingPageTests(unittest.TestCase):
         expected_lastmod = json.loads((target / "results.json").read_text(encoding="utf-8"))["updated"][:10]
         target_routes = {"/" + path.removesuffix("index.html") for path in supporting.TARGET_PATHS}
         entries = re.findall(r"<loc>https://4dvip88\.com([^<]*)</loc>\s*<lastmod>([^<]+)</lastmod>", updated)
-        self.assertEqual(len(entries), 19)
+        self.assertEqual(len(entries), 21)
         for route, lastmod in entries:
             self.assertEqual(lastmod, expected_lastmod if route in target_routes else "2000-01-01")
 
