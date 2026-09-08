@@ -373,12 +373,15 @@ def region_page(results: dict[str, Any], config: dict[str, Any]) -> str:
     )
 
 
-def archive_page(results: dict[str, Any], iso_date: str) -> str:
+def archive_page(results: dict[str, Any], iso_date: str, *, provider_keys: Iterable[str] | None = None) -> str:
     display_date = datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d %B %Y")
     path = f"/results/{iso_date}/"
     draw_date = datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d-%m-%Y")
+    selected = tuple(pre.REQUIRED_PROVIDERS if provider_keys is None else provider_keys)
+    if len(set(selected)) != len(selected) or set(selected) - set(pre.REQUIRED_PROVIDERS):
+        raise pre.ValidationError("archive provider selection contains duplicate or unknown keys")
     matching_providers = tuple(
-        key for key in pre.REQUIRED_PROVIDERS if results["providers"][key].get("drawDate") == draw_date
+        key for key in selected if results["providers"][key].get("drawDate") == draw_date
     )
     if not matching_providers:
         raise pre.ValidationError(f"archive {iso_date} has no provider results with that draw date")
