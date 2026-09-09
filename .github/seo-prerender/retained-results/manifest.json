@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Bounded retained historical result evidence; not a publication approval",
+  "stagedOn": "2026-09-08",
+  "baseCommit": "395998c2f5637bb50834d3a1068df15003676561",
+  "accuracyLimitations": "Pinned, schema-checked website records stable across later imports. This alone is not independent prize accuracy verification or provider certification of finality. No August accuracy or release approval is inherited.",
+  "sources": {
+    "nineMappedRecords": "https://4d4d.co/",
+    "grandDragon": "https://www.4dmoon.com/feedwest.json"
+  },
+  "archives": {
+    "2026-09-05": {
+      "commit": "274e306f4ce1651fca2677965949a7c13f34bff5",
+      "sha256": "5737ec4c87e952f901ac38130b17d46dc2ea5da89ac6c941bd249807f06b27d5",
+      "stableCommits": [
+        "33f51612377b83a2875b244120ac4be5dc88f1d3",
+        "022cf0c65c35d29e658a149b6ba4c7bd1e580615"
+      ],
+      "sourceUrl": "https://raw.githubusercontent.com/angelina5665/4dbcbwebsite/274e306f4ce1651fca2677965949a7c13f34bff5/results.json",
+      "retainedImportTime": "2026-09-06 13:52 MYT",
+      "retainedProviderKeys": [
+        "damacai",
+        "magnum",
+        "toto",
+        "totoextra",
+        "damacai13d",
+        "singapore",
+        "sabah88",
+        "sandakan",
+        "cashsweep",
+        "gd4d"
+      ],
+      "publishedProviderKeys": [
+        "damacai",
+        "magnum",
+        "toto",
+        "totoextra",
+        "damacai13d",
+        "singapore",
+        "sabah88",
+        "sandakan",
+        "cashsweep"
+      ],
+      "excludedProviders": {
+        "gd4d": "Retained importer data exists, but the historical source was not corroborated. Not included on the dated page."
+      },
+      "historicalSource": "https://4d4d.co/result/05-09-2026",
+      "historicalSourceSha256": "e0256ca6930f4cd1457f1a69582a31b8566fb2e36df5d063f6f2a667e3951194",
+      "historicalSourceComparison": "All nine displayed provider objects matched the historical source exactly on 2026-09-08. Same-source corroboration, not independent provider certification.",
+      "pageLastmod": "2026-09-08"
+    },
+    "2026-09-06": {
+      "commit": "f3750403ccfdc1b68645cf6a7015f089516ce0fa",
+      "sha256": "c7d796a3eb4bcadd36f148235b3be3926836bbd35e950540d15ec88713b1fb05",
+      "stableCommits": [
+        "e896b606ced2200196e9b50a848db94a6265e8be",
+        "d8259f646a0e50c4a27d0d6fea2d50fbfacd1c86"
+      ],
+      "sourceUrl": "https://raw.githubusercontent.com/angelina5665/4dbcbwebsite/f3750403ccfdc1b68645cf6a7015f089516ce0fa/results.json",
+      "retainedImportTime": "2026-09-07 14:00 MYT",
+      "retainedProviderKeys": [
+        "damacai",
+        "magnum",
+        "toto",
+        "totoextra",
+        "damacai13d",
+        "singapore",
+        "sabah88",
+        "sandakan",
+        "cashsweep",
+        "gd4d"
+      ],
+      "publishedProviderKeys": [
+        "damacai",
+        "magnum",
+        "toto",
+        "totoextra",
+        "damacai13d",
+        "singapore",
+        "sabah88",
+        "sandakan",
+        "cashsweep"
+      ],
+      "excludedProviders": {
+        "gd4d": "Retained importer data exists, but the historical source was not corroborated. Not included on the dated page."
+      },
+      "historicalSource": "https://4d4d.co/result/06-09-2026",
+      "historicalSourceSha256": "0e5523bfc987b5702c989497f51937006995b16da235afd3f23fedb0d4db2957",
+      "historicalSourceComparison": "All nine displayed provider objects matched the historical source exactly on 2026-09-08. Same-source corroboration, not independent provider certification.",
+      "pageLastmod": "2026-09-08"
+    }
+  }
+}

@@ -495,8 +495,8 @@ class PolicyAndRenderingTests(unittest.TestCase):
 
     def test_archive_metadata_allows_staging_preview_but_publication_requires_current_record(self) -> None:
         metadata = json.loads(build_site.ARCHIVE_METADATA_PATH.read_text(encoding="utf-8"))
+        dates = list(metadata["archives"])
         metadata["archives"].pop("2026-08-24")
-        dates = ["2026-08-24", "2026-08-23"]
         staging = build_site.archive_lastmods(
             metadata,
             dates,
@@ -517,8 +517,8 @@ class PolicyAndRenderingTests(unittest.TestCase):
             )
 
     def test_archive_metadata_rejects_inaccurate_and_unretained_dates(self) -> None:
-        dates = ["2026-08-24", "2026-08-23"]
         metadata = json.loads(build_site.ARCHIVE_METADATA_PATH.read_text(encoding="utf-8"))
+        dates = list(metadata["archives"])
         metadata["archives"]["2026-08-23"]["lastmod"] = "2026-08-22"
         with self.assertRaisesRegex(pre.ValidationError, "predates the archive"):
             build_site.archive_lastmods(
@@ -544,11 +544,12 @@ class PolicyAndRenderingTests(unittest.TestCase):
 
     def test_archive_metadata_current_lastmod_cannot_predate_publication_snapshot(self) -> None:
         metadata = json.loads(build_site.ARCHIVE_METADATA_PATH.read_text(encoding="utf-8"))
+        dates = list(metadata["archives"])
         metadata["archives"]["2026-08-24"]["lastmod"] = "2026-08-24"
         with self.assertRaisesRegex(pre.ValidationError, "predates the snapshot update 2026-08-25"):
             build_site.archive_lastmods(
                 metadata,
-                ["2026-08-24", "2026-08-23"],
+                dates,
                 current_iso="2026-08-24",
                 content_modified_iso="2026-08-25",
                 mode="publication",
