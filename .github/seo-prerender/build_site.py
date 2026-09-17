@@ -691,12 +691,13 @@ def build(
 
     static_paths = [
         ("/", content_modified_iso),
-        ("/privacy.html", "2026-08-25"),
+        ("/privacy.html", "2026-09-17"),
         ("/disclaimer.html", "2026-08-24"),
         ("/about.html", "2026-08-24"),
         ("/methodology.html", "2026-09-06"),
         ("/affiliate-disclosure.html", "2026-08-24"),
         ("/dictionary.html", "2026-09-17"),
+        ("/prize-history/", "2026-09-17"),
     ]
     generated_paths = [(f'/{config["slug"]}/', content_modified_iso) for config in PROVIDER_PAGES + REGION_PAGES]
     generated_paths.extend([("/past-results/", content_modified_iso), ("/4d-prize-guide/", "2026-08-24"), ("/ms/", content_modified_iso)])
