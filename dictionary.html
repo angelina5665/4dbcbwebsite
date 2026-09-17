@@ -8,63 +8,66 @@
   <link rel="canonical" href="https://4dvip88.com/dictionary.html">
   <link rel="icon" href="/favicon.png" type="image/png">
   <link rel="stylesheet" href="/assets/dictionary.css?v=20260917">
+  <link rel="stylesheet" href="/assets/session-sponsor.css">
+  <script src="/assets/site-locale.js"></script>
   <script type="module" src="/assets/dictionary.mjs"></script>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to dictionary</a>
   <header class="site-header">
     <nav class="nav-inner" aria-label="Primary">
-      <a class="nav-link" href="/">Results</a>
+      <div class="nav-group"><a class="nav-link" href="/" data-i18n="results">Results</a><a class="nav-link" href="/prize-history/" data-i18n="history">Prize history</a></div>
       <a class="brand" href="/" aria-label="4DVIP88 home">4D VIP <span>LIVE</span></a>
-      <a class="nav-link current" href="/dictionary.html" aria-current="page">Dictionary</a>
+      <div class="nav-group nav-right"><a class="nav-link current" href="/dictionary.html" aria-current="page" data-i18n="dictionary">Dictionary</a><label class="language-control"><span data-i18n="language">Language</span><select data-language-select aria-label="Language"><option value="en">English</option><option value="zh">中文</option><option value="ms">Bahasa Melayu</option></select></label></div>
     </nav>
   </header>
+  <div data-sponsor-mount></div>
   <main id="main" class="page-shell">
     <div class="page-title">
-      <p class="eyebrow">PUBLISHED SOURCE REFERENCE</p>
-      <h1>3D &amp; 4D Dictionary <span lang="zh-Hans">号码辞典</span></h1>
-      <p>Look up a published code or name in English and Chinese. These entries describe traditional associations; they do not predict future results.</p>
+      <p class="eyebrow" data-i18n="dictEyebrow">PUBLISHED SOURCE REFERENCE</p>
+      <h1><span data-i18n="dictTitle">3D &amp; 4D Dictionary</span> <span lang="zh-Hans">号码辞典</span></h1>
+      <p data-i18n="dictIntro">Look up a published code or name in English and Chinese. These entries describe traditional associations; they do not predict future results.</p>
     </div>
     <section class="search-panel" aria-labelledby="search-title">
-      <h2 id="search-title">Search entries</h2>
+      <h2 id="search-title" data-i18n="dictSearch">Search entries</h2>
       <form id="dictionary-search" role="search">
-        <label for="dictionary-query">Number, English name, or Chinese name</label>
+        <label for="dictionary-query" data-i18n="dictQuery">Number, English name, or Chinese name</label>
         <div class="search-row">
-          <input id="dictionary-query" type="search" name="q" placeholder="e.g. 0003, snake, 蛇" maxlength="100" autocomplete="off" aria-controls="dictionary-results">
-          <button type="submit">Search</button>
-          <button class="clear" type="reset">Clear</button>
+          <input id="dictionary-query" type="search" name="q" placeholder="e.g. 0003, snake, 蛇" data-i18n-placeholder="dictPlaceholder" maxlength="100" autocomplete="off" aria-controls="dictionary-results">
+          <button type="submit" data-i18n="search">Search</button>
+          <button class="clear" type="reset" data-i18n="clear">Clear</button>
         </div>
       </form>
       <div class="filters">
-        <label for="dictionary-category">Category
+        <label for="dictionary-category"><span data-i18n="category">Category</span>
           <select id="dictionary-category">
-            <option value="all">All categories</option>
-            <option value="Dream Numbers">Dream Numbers</option>
-            <option value="Zodiac Numbers">Zodiac Numbers</option>
-            <option value="Festive Numbers">Festive Numbers</option>
+            <option value="all" data-i18n="dictAll">All categories</option>
+            <option value="Dream Numbers" data-i18n="dictDream">Dream Numbers</option>
+            <option value="Zodiac Numbers" data-i18n="dictZodiac">Zodiac Numbers</option>
+            <option value="Festive Numbers" data-i18n="dictFestive">Festive Numbers</option>
           </select>
         </label>
-        <label for="dictionary-length">Code length
+        <label for="dictionary-length"><span data-i18n="length">Code length</span>
           <select id="dictionary-length">
-            <option value="all">3D and 4D</option>
-            <option value="3">3D only</option>
-            <option value="4">4D only</option>
+            <option value="all" data-i18n="dictBoth">3D and 4D</option>
+            <option value="3" data-i18n="dict3">3D only</option>
+            <option value="4" data-i18n="dict4">4D only</option>
           </select>
         </label>
       </div>
-      <p class="hint">A full 3D or 4D code matches exactly. One or two digits find codes beginning with those digits. Leading zeros are preserved.</p>
+      <p class="hint" data-i18n="dictHint">A full 3D or 4D code matches exactly. One or two digits find codes beginning with those digits. Leading zeros are preserved.</p>
     </section>
     <section class="results-section" aria-labelledby="results-title">
-      <div class="results-heading"><h2 id="results-title">Dictionary entries</h2><p id="dictionary-status" role="status" aria-live="polite">Loading entries…</p></div>
+      <div class="results-heading"><h2 id="results-title" data-i18n="dictEntries">Dictionary entries</h2><p id="dictionary-status" role="status" aria-live="polite">Loading entries…</p></div>
       <div id="dictionary-results" class="result-grid"></div>
-      <button id="dictionary-more" class="more-button" type="button" hidden>Show more entries</button>
+      <button id="dictionary-more" class="more-button" type="button" hidden data-i18n="dictMore">Show more entries</button>
     </section>
     <section class="source-panel" aria-labelledby="source-title">
-      <h2 id="source-title">Source and use</h2>
-      <p>Entries are from <a href="https://www.damacai.com.my/numbers-dictionary" target="_blank" rel="noopener noreferrer">Da Ma Cai’s published Numbers Dictionary</a>, via the <a href="https://4dresult1.com/dictionary.html" target="_blank" rel="noopener noreferrer">4DVIP88 source edition</a> dated 17 September 2026. Each card links to its Da Ma Cai source. Pictures come from Da Ma Cai’s published image hosts where available; some categories have no corresponding picture. This site is independent of Da Ma Cai.</p>
-      <p>These are cultural and historical associations for reference. They do not improve the chance of winning or represent predictions. When a picture loads, the source image host receives a normal browser request for that file.</p>
+      <h2 id="source-title" data-i18n="sourceUse">Source and use</h2>
+      <p data-i18n-html="dictSource">Entries are from <a href="https://www.damacai.com.my/numbers-dictionary" target="_blank" rel="noopener noreferrer">Da Ma Cai’s published Numbers Dictionary</a>, republished here with site-owner-confirmed permission on 17 September 2026. Each card links to its Da Ma Cai source. Pictures come from Da Ma Cai’s published image hosts where available; some categories have no picture. This site is independent of Da Ma Cai.</p>
+      <p data-i18n="dictCaution">These are cultural and historical associations for reference. They do not improve the chance of winning or represent predictions. When a picture loads, the source image host receives a normal browser request for that file.</p>
     </section>
   </main>
-  <footer class="site-footer"><div class="footer-inner"><nav aria-label="Footer"><a href="/">Results</a><a href="/disclaimer.html">Disclaimer</a><a href="/privacy.html">Privacy</a></nav><p>© 4D VIP. All rights reserved.</p></div></footer>
+  <footer class="site-footer"><div class="footer-inner"><nav aria-label="Footer"><a href="/" data-i18n="results">Results</a><a href="/disclaimer.html" data-i18n="disclaimer">Disclaimer</a><a href="/privacy.html" data-i18n="privacy">Privacy</a></nav><p>© 4D VIP. All rights reserved.</p></div></footer>
 </body>
 </html>
