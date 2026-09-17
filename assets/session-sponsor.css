@@ -1,0 +1,8 @@
+.language-control{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:650;white-space:nowrap}
+.language-control select{min-height:40px;border:1px solid #9da3aa;border-radius:5px;background:#fff;color:#20252a;padding:6px;font-size:14px}
+.session-sponsor{position:relative;max-width:640px;margin:12px auto 8px;padding:28px 8px 8px;border:1px solid #aeb4bb;border-radius:8px;background:#1a1b1e;box-shadow:0 2px 10px #0002}
+.session-sponsor-label{position:absolute;left:10px;top:5px;color:#fff;font-size:12px;font-weight:700}
+.session-sponsor-close{position:absolute;right:5px;top:2px;min-width:38px;min-height:30px;border:0;background:transparent;color:#fff;font-size:23px;cursor:pointer}
+.session-sponsor a,.session-sponsor picture,.session-sponsor img{display:block}
+.session-sponsor img{width:100%;height:auto;border-radius:4px}
+@media(max-width:600px){.session-sponsor{margin:8px 12px}.language-control{font-size:12px}.language-control select{max-width:112px}}

@@ -36,8 +36,10 @@ export function searchEntries(entries, rawQuery, category = 'all', length = 'all
 }
 
 function sourceLabel(value) {
-  return ({'bilingual feed':'Bilingual feed',both:'Both language pages',en:'English page',zh:'Chinese page'})[value] || 'Source entry';
+  const key = ({'bilingual feed':'bilingual',both:'bothPages',en:'englishPage',zh:'chinesePage'})[value] || 'sourceEntry';
+  return window.SiteLocale?.t(key) || key;
 }
+function t(key, vars) { return window.SiteLocale?.t(key, vars) || key; }
 
 function safeSourceUrl(value) {
   try {
@@ -56,23 +58,24 @@ function element(tag, className, value) {
 function card(entry) {
   const article = element('article','entry');
   const head = element('div','entry-head');
-  head.append(element('strong','entry-code',entry.number),element('span','entry-meta',`${entry.category} · ${entry.number.length}D`));
+  const categoryKey = {'Dream Numbers':'dictDream','Zodiac Numbers':'dictZodiac','Festive Numbers':'dictFestive'}[entry.category];
+  head.append(element('strong','entry-code',entry.number),element('span','entry-meta',`${t(categoryKey)} · ${entry.number.length}D`));
   const picture = element('div','entry-picture');
   const imageUrl = imageUrlFor(entry);
   if (imageUrl) {
     const img = element('img');
     img.src = imageUrl;
-    img.alt = `Da Ma Cai illustration for ${entry.english}`;
+    img.alt = `Da Ma Cai — ${entry.english}`;
     img.loading = 'lazy';
     img.decoding = 'async';
     img.referrerPolicy = 'no-referrer';
     img.width = 290;
     img.height = 288;
-    const fallback = element('span','no-picture','Source picture unavailable');
+    const fallback = element('span','no-picture',t('imageUnavailable'));
     fallback.hidden = true;
     img.addEventListener('error',() => { img.hidden = true; fallback.hidden = false; },{once:true});
     picture.append(img,fallback);
-  } else picture.append(element('span','no-picture','No picture for this entry'));
+  } else picture.append(element('span','no-picture',t('noImage')));
   const body = element('div','entry-body');
   body.append(element('h3','',entry.english));
   const chinese = element('p','entry-zh',entry.chinese);
@@ -82,7 +85,7 @@ function card(entry) {
   const source = element('div','entry-source');
   const sourceUrl = safeSourceUrl(entry.source_url);
   if (sourceUrl) {
-    const link = element('a','', 'Da Ma Cai source ↗');
+    const link = element('a','', t('sourceLink'));
     link.href = sourceUrl;
     link.target = '_blank';
     link.rel = 'noopener noreferrer';
@@ -117,7 +120,7 @@ function start() {
     results.append(fragment);
     shown = end;
     more.hidden = shown >= matches.length;
-    status.textContent = `Showing ${shown.toLocaleString()} of ${matches.length.toLocaleString()} matching entries.`;
+    status.textContent = t('showing',{shown:shown.toLocaleString(),total:matches.length.toLocaleString()});
   }
   function search() {
     clearTimeout(debounce);
@@ -127,8 +130,8 @@ function start() {
     if (!entries.length) return;
     matches = searchEntries(entries, query.value, category.value, length.value);
     if (!matches.length) {
-      status.textContent = 'No matching entries. Try another name, code, or filter.';
-      results.append(element('p','empty','No results found. Full 3D and 4D codes match exactly; shorter number searches match code prefixes.'));
+      status.textContent = t('noMatches');
+      results.append(element('p','empty',t('noResults')));
       return;
     }
     showNext();
@@ -139,6 +142,7 @@ function start() {
   category.addEventListener('change',search);
   length.addEventListener('change',search);
   more.addEventListener('click',showNext);
+  document.addEventListener('site-language-change', () => { if (entries.length) search(); else status.textContent = t('loading'); });
   fetch(DATA_URL,{credentials:'same-origin'}).then(response => {
     if (!response.ok) throw new Error('Dataset unavailable');
     return response.json();
@@ -146,7 +150,7 @@ function start() {
     if (!Array.isArray(payload) || payload.length !== 11824 || !payload.every(validEntry)) throw new Error('Unexpected dataset');
     entries = payload;
     search();
-  }).catch(() => { status.textContent = 'The dictionary could not be loaded. Please try again later.'; });
+  }).catch(() => { status.textContent = t('loadError'); });
 }
 
 if (typeof document !== 'undefined') start();

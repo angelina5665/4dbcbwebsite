@@ -6,7 +6,7 @@ a{color:#8d0000;text-underline-offset:3px}button,input,select{font:inherit}
 :focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .skip-link{position:absolute;left:12px;top:8px;z-index:10;background:#fff;padding:8px 12px;transform:translateY(-150%)}.skip-link:focus{transform:none}
 .site-header{background:linear-gradient(180deg,#17181c,#24262c);border-bottom:2px solid var(--gold)}
-.nav-inner{max-width:1320px;min-height:60px;margin:auto;padding:0 12px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.nav-inner{max-width:1320px;min-height:60px;margin:auto;padding:0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.nav-group{display:flex;align-items:center;gap:4px;flex:1}.nav-right{justify-content:flex-end}
 .brand{display:inline-flex;gap:6px;align-items:center;background:#fff;border:1px solid #e3e3e3;border-radius:6px;padding:6px 14px;color:#e01b24;text-decoration:none;font-size:24px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
 .brand span{align-self:flex-start;margin-top:2px;background:#e01b24;border-radius:2px;padding:1px 4px;color:#fff;font-size:9px;letter-spacing:1px}
 .nav-link{color:#e8e8e8;text-decoration:none;font-size:15px;font-weight:650;padding:8px 10px;min-height:44px;display:inline-flex;align-items:center}.nav-link:last-child{justify-self:end}.nav-link:hover,.nav-link.current{color:#fff;text-decoration:underline}
@@ -14,6 +14,7 @@ a{color:#8d0000;text-underline-offset:3px}button,input,select{font:inherit}
 .page-title{border-radius:8px;background:linear-gradient(120deg,#202126,#34363d);border-bottom:3px solid var(--gold);color:#fff;padding:26px 30px;margin-bottom:18px}
 .page-title .eyebrow{margin:0 0 8px;color:#e5c778;font-size:11px;font-weight:800;letter-spacing:1.5px}
 h1{font-size:clamp(28px,3.2vw,42px);line-height:1.18;margin:0 0 8px}h1 span{display:inline-block;color:#eadca9;font-size:.74em;font-weight:500;margin-left:8px}
+html[lang="zh-Hans"] .page-title h1 span[lang="zh-Hans"]{display:none}
 .page-title>p:last-child{margin:0;color:#e4e4e4;max-width:75ch}
 .search-panel,.source-panel{background:#fff;border:1px solid var(--line);border-radius:8px;padding:22px 24px;box-shadow:0 2px 8px #0000000a}
 h2{margin:0 0 13px;font-size:22px}label{font-size:14px;font-weight:650}
@@ -34,4 +35,5 @@ h2{margin:0 0 13px;font-size:22px}label{font-size:14px;font-weight:650}
 .site-footer{background:#fff;border-top:1px solid #e5e5e5;margin-top:34px}.footer-inner{max-width:1220px;margin:auto;padding:20px 16px;color:#687078;font-size:13px}.footer-inner nav{display:flex;gap:16px;flex-wrap:wrap}.footer-inner a{display:inline-flex;align-items:center;min-height:40px}.footer-inner p{margin:8px 0 0}
 @media(max-width:950px){.result-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:700px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.results-heading{display:block}}
-@media(max-width:480px){.page-shell{margin-top:14px;padding:0 12px}.page-title{padding:20px 18px}.search-panel,.source-panel{padding:18px 14px}.search-row{flex-wrap:wrap}.search-row input{flex-basis:100%}.search-row button{flex:1}.filters{display:block}.filters label{justify-content:space-between;margin-bottom:9px}.filters select{width:58%}.result-grid{grid-template-columns:1fr}.nav-inner{gap:2px}.brand{font-size:19px;padding:5px 8px}.nav-link{font-size:13px;padding:8px 4px}.entry-picture{min-height:140px}.entry-picture img{height:126px}}
+@media(max-width:700px){.nav-inner{justify-content:center;padding:8px 12px}.nav-group{flex:0 1 auto}.nav-right{justify-content:center}.brand{order:-1;width:100%;justify-content:center}.nav-link{font-size:13px;padding:8px 4px}}
+@media(max-width:480px){.page-shell{margin-top:14px;padding:0 12px}.page-title{padding:20px 18px}.search-panel,.source-panel{padding:18px 14px}.search-row{flex-wrap:wrap}.search-row input{flex-basis:100%}.search-row button{flex:1}.filters{display:block}.filters label{justify-content:space-between;margin-bottom:9px}.filters select{width:58%}.result-grid{grid-template-columns:1fr}.brand{font-size:19px;padding:5px 8px}.entry-picture{min-height:140px}.entry-picture img{height:126px}}
