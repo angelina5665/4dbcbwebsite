@@ -179,6 +179,10 @@ class SupportingPageTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         sitemap_path = target / "sitemap.xml"
         sitemap = sitemap_path.read_text(encoding="utf-8")
+        original_routes = re.findall(
+            r"<loc>https://4dvip88\.com([^<]*)</loc>\s*<lastmod>[^<]+</lastmod>", sitemap
+        )
+        self.assertEqual(len(original_routes), len(set(original_routes)))
         sitemap_path.write_text(re.sub(r"<lastmod>[^<]+</lastmod>", "<lastmod>2000-01-01</lastmod>", sitemap), encoding="utf-8")
 
         run = self.run_generator(target)
@@ -188,7 +192,7 @@ class SupportingPageTests(unittest.TestCase):
         expected_lastmod = json.loads((target / "results.json").read_text(encoding="utf-8"))["updated"][:10]
         target_routes = {"/" + path.removesuffix("index.html") for path in supporting.TARGET_PATHS}
         entries = re.findall(r"<loc>https://4dvip88\.com([^<]*)</loc>\s*<lastmod>([^<]+)</lastmod>", updated)
-        self.assertEqual(len(entries), 21)
+        self.assertEqual(sorted(route for route, _ in entries), sorted(original_routes))
         for route, lastmod in entries:
             self.assertEqual(lastmod, expected_lastmod if route in target_routes else "2000-01-01")
 
