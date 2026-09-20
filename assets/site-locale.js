@@ -65,8 +65,18 @@
     picture.append(source,image); link.append(picture); panel.append(label,close,link); mount.append(panel);
     document.addEventListener('site-language-change',() => { label.textContent=t('sponsor'); close.setAttribute('aria-label',t('closeSponsor')); image.alt=t('sponsorAlt'); });
   }
+  function dictionarySponsorClick(event) {
+    if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    try {
+      if (sessionStorage.getItem('4dvip88.dictionarySponsorAttempted')) return;
+      sessionStorage.setItem('4dvip88.dictionarySponsorAttempted', '1');
+    } catch (_) { return; }
+    if (Math.random() >= 0.25) return;
+    try { window.open('https://bcb88j.com/RFAA8723385', '_blank', 'noopener,noreferrer'); } catch (_) {}
+  }
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-language-select]').forEach(el => el.addEventListener('change',() => setLanguage(el.value)));
+    document.querySelectorAll('[data-sponsored-dictionary]').forEach(el => el.addEventListener('click', dictionarySponsorClick));
     apply(); sponsor();
   });
   window.SiteLocale = Object.freeze({ t, getLanguage: () => current, setLanguage, apply });
