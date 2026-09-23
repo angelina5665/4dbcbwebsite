@@ -1,0 +1,267 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-23T04:25:08.497Z",
+  "licenceNotice": "Source repository states MIT; verify operator-source rights and attribution before publication.",
+  "sourceRepository": "https://github.com/deadboy18/malaysia-4d",
+  "pinnedRevision": "876d26351d2d5168f87cb4c101d5f98d0ea23e4f",
+  "coverage": {
+    "magnum": {
+      "draws": 6817,
+      "drawDates": 6817,
+      "start": "1985-04-25",
+      "end": "2026-09-20",
+      "prizes": 156791,
+      "missingPrizes": 0,
+      "sourceUrl": "https://raw.githubusercontent.com/deadboy18/malaysia-4d/876d26351d2d5168f87cb4c101d5f98d0ea23e4f/data/magnum_draws.csv",
+      "sourceSha256": "bdf6d3c371976a08f3477eaaa6a830af2981a2840926428c970a764e1fcd1061"
+    },
+    "toto": {
+      "draws": 5672,
+      "drawDates": 5672,
+      "start": "1992-05-06",
+      "end": "2026-09-20",
+      "prizes": 99156,
+      "missingPrizes": 31300,
+      "sourceUrl": "https://raw.githubusercontent.com/deadboy18/malaysia-4d/876d26351d2d5168f87cb4c101d5f98d0ea23e4f/data/sportstoto_draws.csv",
+      "sourceSha256": "23c2b9984c287177954b4bc48f30953cf9d742589c081965843d8f6642fae157"
+    },
+    "damacai": {
+      "draws": 3646,
+      "drawDates": 3646,
+      "start": "2005-01-01",
+      "end": "2026-09-20",
+      "prizes": 83858,
+      "missingPrizes": 0,
+      "sourceUrl": "https://raw.githubusercontent.com/deadboy18/malaysia-4d/876d26351d2d5168f87cb4c101d5f98d0ea23e4f/data/damacai_draws.csv",
+      "sourceSha256": "e761d13d9f31c886be56343825c322b790d2aac7c43d2d6fca72d27c104b8661"
+    },
+    "sabah88": {
+      "draws": 2,
+      "drawDates": 2,
+      "start": "2026-09-05",
+      "end": "2026-09-06",
+      "prizes": 46,
+      "missingPrizes": 0,
+      "sourceUrl": "https://raw.githubusercontent.com/angelina5665/4dbcbwebsite/a1b1c7b52f1a8127a0ed47ef986aaa396a380723/.github/seo-prerender/retained-results/manifest.json",
+      "sourceSha256": "See manifest per-date hashes",
+      "coverageNote": "Only retained 5–6 September draws are staged; earlier regional history is not available in this source."
+    },
+    "sandakan": {
+      "draws": 2,
+      "drawDates": 2,
+      "start": "2026-09-05",
+      "end": "2026-09-06",
+      "prizes": 46,
+      "missingPrizes": 0,
+      "sourceUrl": "https://raw.githubusercontent.com/angelina5665/4dbcbwebsite/a1b1c7b52f1a8127a0ed47ef986aaa396a380723/.github/seo-prerender/retained-results/manifest.json",
+      "sourceSha256": "See manifest per-date hashes",
+      "coverageNote": "Only retained 5–6 September draws are staged; earlier regional history is not available in this source."
+    },
+    "cashsweep": {
+      "draws": 2,
+      "drawDates": 2,
+      "start": "2026-09-05",
+      "end": "2026-09-06",
+      "prizes": 46,
+      "missingPrizes": 0,
+      "sourceUrl": "https://raw.githubusercontent.com/angelina5665/4dbcbwebsite/a1b1c7b52f1a8127a0ed47ef986aaa396a380723/.github/seo-prerender/retained-results/manifest.json",
+      "sourceSha256": "See manifest per-date hashes",
+      "coverageNote": "Only retained 5–6 September draws are staged; earlier regional history is not available in this source."
+    }
+  },
+  "totalPrizeRecords": 339943,
+  "sample0313": [
+    [
+      "2026-08-22",
+      "magnum",
+      "411",
+      "consolation"
+    ],
+    [
+      "2026-04-04",
+      "damacai",
+      "6059",
+      "second"
+    ],
+    [
+      "2025-05-03",
+      "magnum",
+      "198",
+      "third"
+    ],
+    [
+      "2019-07-24",
+      "damacai",
+      "4925",
+      "consolation"
+    ],
+    [
+      "2018-05-02",
+      "toto",
+      "4768",
+      "consolation"
+    ],
+    [
+      "2017-02-25",
+      "damacai",
+      "4504",
+      "consolation"
+    ],
+    [
+      "2016-07-13",
+      "damacai",
+      "4392",
+      "consolation"
+    ],
+    [
+      "2015-10-31",
+      "damacai",
+      "4266",
+      "consolation"
+    ],
+    [
+      "2015-10-18",
+      "toto",
+      "4313",
+      "third"
+    ],
+    [
+      "2014-08-26",
+      "magnum",
+      "331",
+      "special"
+    ],
+    [
+      "2013-03-26",
+      "damacai",
+      "3804",
+      "consolation"
+    ],
+    [
+      "2011-12-31",
+      "damacai",
+      "3582",
+      "special"
+    ],
+    [
+      "2011-01-26",
+      "magnum",
+      "693",
+      "consolation"
+    ],
+    [
+      "2009-08-11",
+      "damacai",
+      "3159",
+      "second"
+    ],
+    [
+      "2009-02-28",
+      "toto",
+      "3138",
+      "special"
+    ],
+    [
+      "2008-12-24",
+      "damacai",
+      "3049",
+      "consolation"
+    ],
+    [
+      "2006-11-18",
+      "magnum",
+      "138",
+      "special"
+    ],
+    [
+      "2006-04-30",
+      "toto",
+      "2666",
+      "special"
+    ],
+    [
+      "2005-04-16",
+      "toto",
+      "2488",
+      "special"
+    ],
+    [
+      "2004-12-08",
+      "magnum",
+      "147",
+      "special"
+    ],
+    [
+      "2003-12-27",
+      "toto",
+      "2266",
+      "first"
+    ],
+    [
+      "2001-10-31",
+      "magnum",
+      "130",
+      "consolation"
+    ],
+    [
+      "1999-07-17",
+      "magnum",
+      "85",
+      "special"
+    ],
+    [
+      "1996-09-15",
+      "magnum",
+      "111",
+      "first"
+    ],
+    [
+      "1995-12-23",
+      "magnum",
+      "153",
+      "consolation"
+    ],
+    [
+      "1995-08-30",
+      "magnum",
+      "104",
+      "special"
+    ],
+    [
+      "1994-08-04",
+      "magnum",
+      "93",
+      "special"
+    ],
+    [
+      "1990-12-03",
+      "magnum",
+      "145",
+      "third"
+    ],
+    [
+      "1988-10-01",
+      "magnum",
+      "118",
+      "special"
+    ],
+    [
+      "1987-02-08",
+      "magnum",
+      "18",
+      "special"
+    ],
+    [
+      "1986-05-03",
+      "magnum",
+      "53",
+      "consolation"
+    ],
+    [
+      "1986-01-04",
+      "magnum",
+      "2",
+      "consolation"
+    ]
+  ]
+}
