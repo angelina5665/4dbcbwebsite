@@ -3,7 +3,7 @@ name: Update 4D results
 on:
   schedule:
     # every 15 minutes from 5pm to 2am Malaysia time (09:00-17:59 UTC)
-    - cron: "*/15 9-17 * * *"
+    - cron: "*/5 9-17 * * *"
     # once an hour the rest of the day, to catch special draws
     - cron: "30 0-8,18-23 * * *"
   workflow_dispatch:
