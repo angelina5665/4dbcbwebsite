@@ -1,0 +1,54 @@
+name: Site health watchman
+
+on:
+  schedule:
+    # a few times around each evening draw window, plus one daytime check
+    - cron: "50 10,12,14 * * *"
+    - cron: "20 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check the whole results chain
+        id: health
+        run: python healthcheck.py 2>&1 | tee report.txt
+
+      - name: Raise the alarm (opens an issue, which emails the owner)
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXISTING=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "Site health alert in:title" --json number --jq 'length')
+          if [ "$EXISTING" = "0" ]; then
+            gh issue create --repo "$GITHUB_REPOSITORY" \
+              --title "Site health alert: results chain has a problem" \
+              --body "The automatic watchman found a problem:
+
+          $(cat report.txt)
+
+          Open a Claude session and say: fix the site health alert."
+          else
+            echo "Alert issue already open - not duplicating."
+          fi
+
+      - name: Close the alarm when healthy again
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for n in $(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "Site health alert in:title" --json number --jq '.[].number'); do
+            gh issue close "$n" --repo "$GITHUB_REPOSITORY" --comment "Watchman reports everything healthy again."
+          done
