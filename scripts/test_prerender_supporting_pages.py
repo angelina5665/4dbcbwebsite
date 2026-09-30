@@ -75,7 +75,7 @@ class SupportingPageTests(unittest.TestCase):
             route = "/" + relative_path.removesuffix("index.html")
             self.assertRegex(
                 sitemap,
-                rf"<loc>https://4dvip88\.com{route}</loc>\s*<lastmod>{lastmod}</lastmod>",
+                rf"<loc>https://my4d\.co{route}</loc>\s*<lastmod>{lastmod}</lastmod>",
             )
         for slug, config in supporting.PROVIDER_CONFIGS.items():
             html = (REPO / slug / "index.html").read_text(encoding="utf-8")
@@ -180,7 +180,7 @@ class SupportingPageTests(unittest.TestCase):
         sitemap_path = target / "sitemap.xml"
         sitemap = sitemap_path.read_text(encoding="utf-8")
         original_routes = re.findall(
-            r"<loc>https://4dvip88\.com([^<]*)</loc>\s*<lastmod>[^<]+</lastmod>", sitemap
+            r"<loc>https://my4d\.co([^<]*)</loc>\s*<lastmod>[^<]+</lastmod>", sitemap
         )
         self.assertEqual(len(original_routes), len(set(original_routes)))
         sitemap_path.write_text(re.sub(r"<lastmod>[^<]+</lastmod>", "<lastmod>2000-01-01</lastmod>", sitemap), encoding="utf-8")
@@ -191,7 +191,7 @@ class SupportingPageTests(unittest.TestCase):
         updated = sitemap_path.read_text(encoding="utf-8")
         expected_lastmod = json.loads((target / "results.json").read_text(encoding="utf-8"))["updated"][:10]
         target_routes = {"/" + path.removesuffix("index.html") for path in supporting.TARGET_PATHS}
-        entries = re.findall(r"<loc>https://4dvip88\.com([^<]*)</loc>\s*<lastmod>([^<]+)</lastmod>", updated)
+        entries = re.findall(r"<loc>https://my4d\.co([^<]*)</loc>\s*<lastmod>([^<]+)</lastmod>", updated)
         self.assertEqual(sorted(route for route, _ in entries), sorted(original_routes))
         for route, lastmod in entries:
             self.assertEqual(lastmod, expected_lastmod if route in target_routes else "2000-01-01")
