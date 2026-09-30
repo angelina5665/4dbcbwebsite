@@ -426,7 +426,7 @@ class PolicyAndRenderingTests(unittest.TestCase):
         self.assertIn("results/2026-08-24/index.html", relative)
         self.assertTrue((REPO_ROOT / "results" / "2026-08-23" / "index.html").is_file())
         sitemap = planned[REPO_ROOT / "sitemap.xml"]
-        self.assertIn("https://4dvip88.com/magnum-4d-results/", sitemap)
+        self.assertIn("https://my4d.co/magnum-4d-results/", sitemap)
         self.assertNotIn("example.com", sitemap)
 
     def test_homepage_progressive_enhancement_keeps_raw_results_on_json_failure(self) -> None:
@@ -489,9 +489,9 @@ class PolicyAndRenderingTests(unittest.TestCase):
         planned = build_plan(results, current_policy(), mode="staging")
         sitemap = planned[REPO_ROOT / "sitemap.xml"]
         updated_date = pre.parse_updated(results["updated"]).strftime("%Y-%m-%d")
-        self.assertIn(f"<loc>https://4dvip88.com/</loc>\n    <lastmod>{updated_date}</lastmod>", sitemap)
-        self.assertIn(f"<loc>https://4dvip88.com/results/2026-08-24/</loc>\n    <lastmod>{updated_date}</lastmod>", sitemap)
-        self.assertIn("<loc>https://4dvip88.com/results/2026-08-23/</loc>\n    <lastmod>2026-08-25</lastmod>", sitemap)
+        self.assertIn(f"<loc>https://my4d.co/</loc>\n    <lastmod>{updated_date}</lastmod>", sitemap)
+        self.assertIn(f"<loc>https://my4d.co/results/2026-08-24/</loc>\n    <lastmod>{updated_date}</lastmod>", sitemap)
+        self.assertIn("<loc>https://my4d.co/results/2026-08-23/</loc>\n    <lastmod>2026-08-25</lastmod>", sitemap)
 
     def test_archive_metadata_allows_staging_preview_but_publication_requires_current_record(self) -> None:
         metadata = json.loads(build_site.ARCHIVE_METADATA_PATH.read_text(encoding="utf-8"))

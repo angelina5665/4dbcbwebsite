@@ -19,7 +19,7 @@ import prerender_results as pre
 
 TOOL_DIR = Path(__file__).resolve().parent
 REPO_ROOT = TOOL_DIR.parents[1]
-BASE_URL = "https://4dvip88.com"
+BASE_URL = "https://my4d.co"
 ARCHIVE_METADATA_PATH = TOOL_DIR / "archive-metadata.json"
 ARCHIVE_METADATA_SCHEMA_VERSION = 1
 
@@ -278,9 +278,9 @@ def page_document(
     alternates = ""
     if hreflang:
         alternates = (
-            '<link rel="alternate" hreflang="en-MY" href="https://4dvip88.com/">'
-            '<link rel="alternate" hreflang="ms-MY" href="https://4dvip88.com/ms/">'
-            '<link rel="alternate" hreflang="x-default" href="https://4dvip88.com/">'
+            '<link rel="alternate" hreflang="en-MY" href="https://my4d.co/">'
+            '<link rel="alternate" hreflang="ms-MY" href="https://my4d.co/ms/">'
+            '<link rel="alternate" hreflang="x-default" href="https://my4d.co/">'
         )
     schema = page_schema(title, description, path, language, crumbs)
     breadcrumb_label = "Jejak halaman" if language == "ms-MY" else "Breadcrumb"

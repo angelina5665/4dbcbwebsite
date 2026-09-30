@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://4dvip88.com/sitemap.xml
+Sitemap: https://my4d.co/sitemap.xml

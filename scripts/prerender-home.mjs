@@ -40,7 +40,7 @@ function replaceBlock(text, startMarker, endMarker, value, eol) {
 }
 
 function replaceHomepageLastmod(sitemap, lastmod) {
-  const pattern = /(<loc>https:\/\/4dvip88\.com\/<\/loc>\s*<lastmod>)[^<]+(<\/lastmod>)/g;
+  const pattern = /(<loc>https:\/\/my4d\.co\/<\/loc>\s*<lastmod>)[^<]+(<\/lastmod>)/g;
   const matches = [...sitemap.matchAll(pattern)];
   if (matches.length !== 1) {
     throw new Error(`Expected one homepage sitemap entry, found ${matches.length}`);

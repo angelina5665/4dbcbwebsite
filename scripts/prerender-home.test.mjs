@@ -67,13 +67,13 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.match(html, /<title>Malaysia 4D Results \| 4DVIP88<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]*4DVIP88[^"]*">/);
   assert.match(html, /<meta property="og:site_name" content="4DVIP88">/);
-  assert.match(html, /<link rel="alternate" hreflang="en-MY" href="https:\/\/4dvip88\.com\/">/);
-  assert.match(html, /<link rel="alternate" hreflang="ms-MY" href="https:\/\/4dvip88\.com\/ms\/">/);
-  assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/4dvip88\.com\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="en-MY" href="https:\/\/my4d\.co\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="ms-MY" href="https:\/\/my4d\.co\/ms\/">/);
+  assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/my4d\.co\/">/);
   assert.equal((html.match(/<link rel="alternate" hreflang=/g) || []).length, 3);
   assert.equal(websiteSchema.name, "4DVIP88");
   assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
-  assert.equal(websiteSchema.url, "https://4dvip88.com/");
+  assert.equal(websiteSchema.url, "https://my4d.co/");
   assert.ok(html.includes(`data-results-updated="${results.updated}"`));
   assert.equal(results.drawDate, latestProvider.drawDate);
   assert.equal(results.drawDay, latestProvider.drawDay);
@@ -105,7 +105,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
       assert.ok(rawResults.includes(String(value)), `missing raw-HTML result ${value}`);
     }
   }
-  assert.match(sitemap, new RegExp(`<loc>https://4dvip88\\.com/</loc>\\s*<lastmod>${results.updated.slice(0, 10)}</lastmod>`));
+  assert.match(sitemap, new RegExp(`<loc>https://my4d\\.co/</loc>\\s*<lastmod>${results.updated.slice(0, 10)}</lastmod>`));
 });
 
 test("homepage retains the current brand icon tags and valid icon assets", async () => {

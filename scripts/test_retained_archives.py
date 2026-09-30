@@ -63,7 +63,7 @@ class RetainedArchiveTests(unittest.TestCase):
             with self.subTest(date=date):
                 page = self.page(date)
                 self.assertEqual(len(re.findall(r"<h1(?:\s|>)", page)), 1)
-                self.assertEqual(re.findall(r'<link rel="canonical" href="([^"]+)"', page), [f"https://4dvip88.com/results/{date}/"])
+                self.assertEqual(re.findall(r'<link rel="canonical" href="([^"]+)"', page), [f"https://my4d.co/results/{date}/"])
                 self.assertNotIn('<meta name="robots" content="noindex', page)
                 self.assertEqual(re.findall(r'<link rel="stylesheet"[^>]*>', page), re.findall(r'<link rel="stylesheet"[^>]*>', current_template))
                 self.assertNotIn("<style", page)
@@ -72,8 +72,8 @@ class RetainedArchiveTests(unittest.TestCase):
                     pattern = rf"<{tag}\b.*?</{tag}>"
                     self.assertEqual(re.search(pattern, page, re.S).group(), re.search(pattern, current_template, re.S).group())
                 schema = json.loads(re.search(r'<script type="application/ld\+json">(.*?)</script>', page, re.S).group(1))
-                self.assertEqual(schema["@graph"][0]["url"], f"https://4dvip88.com/results/{date}/")
-                self.assertEqual(schema["@graph"][1]["itemListElement"][-1]["item"], f"https://4dvip88.com/results/{date}/")
+                self.assertEqual(schema["@graph"][0]["url"], f"https://my4d.co/results/{date}/")
+                self.assertEqual(schema["@graph"][1]["itemListElement"][-1]["item"], f"https://my4d.co/results/{date}/")
 
     def test_history_sitemap_and_metadata_agree(self):
         history = (REPO / "past-results/index.html").read_text(encoding="utf-8")
@@ -84,7 +84,7 @@ class RetainedArchiveTests(unittest.TestCase):
         self.assertEqual(len(entries), len(list(root)))
         for date in DATES:
             self.assertEqual(history.count(f'href="/results/{date}/"'), 1)
-            self.assertEqual(entries[f"https://4dvip88.com/results/{date}/"], metadata[date]["lastmod"])
+            self.assertEqual(entries[f"https://my4d.co/results/{date}/"], metadata[date]["lastmod"])
         self.assertLess(history.index("2026-09-06"), history.index("2026-09-05"))
 
     def test_bad_provider_selection_is_rejected(self):
