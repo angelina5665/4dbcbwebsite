@@ -289,6 +289,8 @@ def page_document(
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="/assets/theme.css?v=20261001">
+  <script src="/assets/theme.js?v=20261001"></script>
   <title>{esc(title)}</title>
   <meta name="description" content="{esc(description)}">
   <link rel="canonical" href="{esc(canonical(path))}">

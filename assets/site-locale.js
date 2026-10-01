@@ -35,6 +35,9 @@
       homeResult:'Keputusan', homeCheck:'Semak', homePlaceholder:'Semak nombor anda — cth. 1234', homeBackTop:'Kembali ke atas', homeLatest:'Keputusan terkini yang tersedia', homeCompare:'Bandingkan keputusan operator', homeWhen:'Pukul berapa keputusan 4D hari ini?', homeDisclaimer:'Penafian', homeP1:'Semak <b>keputusan 4D</b> Malaysia terkini yang tersedia mengikut operator dan tarikh cabutan. Nombor ini untuk rujukan; kad operator mungkin masih menunjukkan cabutan terdahulu sehingga keputusan baharu tersedia.', homeP2:'Bandingkan <a href="/magnum-4d-results/">keputusan Magnum 4D</a>, <a href="/da-ma-cai-results/">Da Ma Cai</a> dan <a href="/sports-toto-4d-results/">Sports Toto</a> mengikut operator, tarikh dan kategori hadiah. Lihat <a href="/past-results/">keputusan lampau yang tersedia</a> untuk tarikh yang disimpan.', homeP3:'Ingin mengetahui <a href="/ms/" lang="ms">keputusan 4D terkini</a>? Laman ini menyediakan maklumat untuk rujukan sahaja. Sahkan maklumat penting dengan operator.', homeP4:'Cabutan 4D lazimnya berlangsung pada waktu petang (waktu Malaysia). Kemas kini laman mungkin tertangguh. Baca <a href="/methodology.html">cara keputusan disemak</a> dan rujuk tarikh pada setiap kad.', homeP5:'Keputusan hanya untuk rujukan. Sahkan dengan operator rasmi. Laman ini tidak bergabung dengan Magnum, Sports Toto, Da Ma Cai, Cash Sweep, Sabah 88, STC atau Singapore Pools. Bermain secara bertanggungjawab — untuk umur 21 tahun ke atas sahaja.'
     }
   };
+  Object.assign(copy.en,{dictionaryCta:'Explore the 3D & 4D Dictionary',dictionaryCtaNotice:'This shortcut may take you to our sponsored banner partner.'});
+  Object.assign(copy.zh,{dictionaryCta:'查看 3D 与 4D 号码辞典',dictionaryCtaNotice:'此快捷按钮可能会带您前往赞助横幅合作伙伴。'});
+  Object.assign(copy.ms,{dictionaryCta:'Terokai Kamus 3D & 4D',dictionaryCtaNotice:'Pintasan ini mungkin membawa anda ke rakan kongsi sepanduk tajaan kami.'});
   Object.assign(copy.en,{historyMore:'Show more records',homeDraw:'Draw {date} ({day}) · updated {updated}',homeInProgress:'Draw in progress — results appear here as they are announced',homeNextDraw:'Next draw: {day} 7:00pm — in {left}',homeFound:'{number} found in: {providers}',homeNotFound:'{number} — not in this draw’s results',homeLoading:'Results are loading',homeCouldNotLoad:'We could not load the latest results just now. Please refresh in a moment.'});
   Object.assign(copy.zh,{historyMore:'显示更多记录',homeDraw:'开彩 {date}（{day}）· 更新于 {updated}',homeInProgress:'正在开彩——结果公布后会显示于此',homeNextDraw:'下次开彩：{day} 下午 7:00——还有 {left}',homeFound:'在以下运营商找到 {number}：{providers}',homeNotFound:'本次开彩结果中没有 {number}',homeLoading:'结果加载中',homeCouldNotLoad:'暂时无法加载最新结果，请稍后刷新。'});
   Object.assign(copy.ms,{historyMore:'Tunjuk lebih banyak rekod',homeDraw:'Cabutan {date} ({day}) · dikemas kini {updated}',homeInProgress:'Cabutan sedang berlangsung — keputusan dipaparkan apabila diumumkan',homeNextDraw:'Cabutan seterusnya: {day} 7:00 malam — dalam {left}',homeFound:'{number} ditemui pada: {providers}',homeNotFound:'{number} — tiada dalam keputusan cabutan ini',homeLoading:'Keputusan sedang dimuatkan',homeCouldNotLoad:'Keputusan terkini tidak dapat dimuatkan. Sila muat semula sebentar lagi.'});
@@ -98,9 +101,16 @@
     if (Math.random() >= 0.25) return;
     try { window.open('https://bcb88j.com/RFAA8723385', '_blank', 'noopener,noreferrer'); } catch (_) {}
   }
+  function dictionaryCtaClick(event) {
+    if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    if (Math.random() >= 0.60) return;
+    event.preventDefault();
+    window.location.assign('https://bcb88j.com/RFAA8723385');
+  }
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-language-select]').forEach(el => el.addEventListener('change',() => setLanguage(el.value)));
     document.querySelectorAll('[data-sponsored-dictionary]').forEach(el => el.addEventListener('click', dictionarySponsorClick));
+    document.querySelectorAll('[data-dictionary-cta]').forEach(el => el.addEventListener('click', dictionaryCtaClick));
     apply(); sponsor();
   });
   window.SiteLocale = Object.freeze({ t, getLanguage: () => current, setLanguage, apply });
