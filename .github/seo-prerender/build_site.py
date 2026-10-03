@@ -696,7 +696,7 @@ def build(
         ("/privacy.html", "2026-09-17"),
         ("/disclaimer.html", "2026-08-24"),
         ("/about.html", "2026-08-24"),
-        ("/methodology.html", "2026-09-06"),
+        ("/methodology.html", "2026-10-03"),
         ("/affiliate-disclosure.html", "2026-08-24"),
         ("/dictionary.html", "2026-09-17"),
         ("/prize-history/", "2026-09-17"),
