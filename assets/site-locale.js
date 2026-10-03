@@ -35,9 +35,9 @@
       homeResult:'Keputusan', homeCheck:'Semak', homePlaceholder:'Semak nombor anda — cth. 1234', homeBackTop:'Kembali ke atas', homeLatest:'Keputusan terkini yang tersedia', homeCompare:'Bandingkan keputusan operator', homeWhen:'Pukul berapa keputusan 4D hari ini?', homeDisclaimer:'Penafian', homeP1:'Semak <b>keputusan 4D</b> Malaysia terkini yang tersedia mengikut operator dan tarikh cabutan. Nombor ini untuk rujukan; kad operator mungkin masih menunjukkan cabutan terdahulu sehingga keputusan baharu tersedia.', homeP2:'Bandingkan <a href="/magnum-4d-results/">keputusan Magnum 4D</a>, <a href="/da-ma-cai-results/">Da Ma Cai</a> dan <a href="/sports-toto-4d-results/">Sports Toto</a> mengikut operator, tarikh dan kategori hadiah. Lihat <a href="/past-results/">keputusan lampau yang tersedia</a> untuk tarikh yang disimpan.', homeP3:'Ingin mengetahui <a href="/ms/" lang="ms">keputusan 4D terkini</a>? Laman ini menyediakan maklumat untuk rujukan sahaja. Sahkan maklumat penting dengan operator.', homeP4:'Cabutan 4D lazimnya berlangsung pada waktu petang (waktu Malaysia). Kemas kini laman mungkin tertangguh. Baca <a href="/methodology.html">cara keputusan disemak</a> dan rujuk tarikh pada setiap kad.', homeP5:'Keputusan hanya untuk rujukan. Sahkan dengan operator rasmi. Laman ini tidak bergabung dengan Magnum, Sports Toto, Da Ma Cai, Cash Sweep, Sabah 88, STC atau Singapore Pools. Bermain secara bertanggungjawab — untuk umur 21 tahun ke atas sahaja.'
     }
   };
-  Object.assign(copy.en,{dictionaryCta:'Explore the 3D & 4D Dictionary',dictionaryCtaNotice:'This shortcut may take you to our sponsored banner partner.'});
-  Object.assign(copy.zh,{dictionaryCta:'查看 3D 与 4D 号码辞典',dictionaryCtaNotice:'此快捷按钮可能会带您前往赞助横幅合作伙伴。'});
-  Object.assign(copy.ms,{dictionaryCta:'Terokai Kamus 3D & 4D',dictionaryCtaNotice:'Pintasan ini mungkin membawa anda ke rakan kongsi sepanduk tajaan kami.'});
+  Object.assign(copy.en,{dictionaryCta:'Explore the 3D & 4D Dictionary',guideCta:'Payout & How to Bet Guide',dictionaryCtaNotice:'The Dictionary shortcut may take you to our sponsored banner partner.'});
+  Object.assign(copy.zh,{dictionaryCta:'查看 3D 与 4D 号码辞典',guideCta:'奖金与下注指南',dictionaryCtaNotice:'号码辞典快捷按钮可能会带您前往赞助横幅合作伙伴。'});
+  Object.assign(copy.ms,{dictionaryCta:'Terokai Kamus 3D & 4D',guideCta:'Panduan Bayaran & Cara Bertaruh',dictionaryCtaNotice:'Pintasan Kamus mungkin membawa anda ke rakan kongsi sepanduk tajaan kami.'});
   Object.assign(copy.en,{historyMore:'Show more records',homeDraw:'Draw {date} ({day}) · updated {updated}',homeInProgress:'Draw in progress — results appear here as they are announced',homeNextDraw:'Next draw: {day} 7:00pm — in {left}',homeFound:'{number} found in: {providers}',homeNotFound:'{number} — not in this draw’s results',homeLoading:'Results are loading',homeCouldNotLoad:'We could not load the latest results just now. Please refresh in a moment.'});
   Object.assign(copy.zh,{historyMore:'显示更多记录',homeDraw:'开彩 {date}（{day}）· 更新于 {updated}',homeInProgress:'正在开彩——结果公布后会显示于此',homeNextDraw:'下次开彩：{day} 下午 7:00——还有 {left}',homeFound:'在以下运营商找到 {number}：{providers}',homeNotFound:'本次开彩结果中没有 {number}',homeLoading:'结果加载中',homeCouldNotLoad:'暂时无法加载最新结果，请稍后刷新。'});
   Object.assign(copy.ms,{historyMore:'Tunjuk lebih banyak rekod',homeDraw:'Cabutan {date} ({day}) · dikemas kini {updated}',homeInProgress:'Cabutan sedang berlangsung — keputusan dipaparkan apabila diumumkan',homeNextDraw:'Cabutan seterusnya: {day} 7:00 malam — dalam {left}',homeFound:'{number} ditemui pada: {providers}',homeNotFound:'{number} — tiada dalam keputusan cabutan ini',homeLoading:'Keputusan sedang dimuatkan',homeCouldNotLoad:'Keputusan terkini tidak dapat dimuatkan. Sila muat semula sebentar lagi.'});
@@ -65,8 +65,8 @@
     historySource:'Data sejarah Magnum, Sports Toto dan Da Ma Cai: <a href="https://github.com/deadboy18/malaysia-4d" target="_blank" rel="noopener noreferrer">set data awam malaysia-4d (MIT)</a>, berasal daripada sumber operator. Rekod serantau: fail 4DVIP88 yang disimpan dan dibandingkan dengan <a href="https://4d4d.co/" target="_blank" rel="noopener noreferrer">4d4d.co</a> pada 8 September 2026. Ini bukan pengesahan bebas operator. <a href="/methodology.html">Baca kaedah.</a>',
     historyLicence:'Kebenaran penerbitan semula: pemilik laman menyatakan pihak pengurusan telah memperoleh kelulusan untuk maklumat keputusan. Set data sumber menyatakan lesen MIT; tiada sokongan operator didakwa. Sahkan maklumat penting dengan operator.'
   });
-  let current = 'en';
-  try { const saved = localStorage.getItem(KEY); if (codes[saved]) current = saved; } catch (_) {}
+  let current = document.documentElement.lang?.toLowerCase().startsWith('ms') ? 'ms' : 'en';
+  try { const saved = localStorage.getItem(KEY); if (codes[saved] && location.pathname !== '/ms/') current = saved; } catch (_) {}
   function format(value, vars) { return String(value).replace(/\{(\w+)\}/g, (_, key) => vars?.[key] ?? ''); }
   function t(key, vars) { return format(copy[current][key] ?? copy.en[key] ?? key, vars); }
   function apply() {
@@ -78,7 +78,20 @@
     document.querySelectorAll('[data-language-select]').forEach(el => { el.value = current; });
     document.dispatchEvent(new CustomEvent('site-language-change', { detail: { language: current } }));
   }
-  function setLanguage(value) { if (!codes[value]) return; current = value; try { localStorage.setItem(KEY, value); } catch (_) {} apply(); }
+  function setLanguage(value) {
+    if (!codes[value]) return;
+    current = value;
+    try { localStorage.setItem(KEY, value); } catch (_) {}
+    if (location.pathname === '/ms/' && value !== 'ms') { location.assign('/'); return; }
+    apply();
+  }
+  function mountLanguageControl() {
+    if (!document.body || typeof document.createElement !== 'function' || document.querySelector('[data-language-select]')) return;
+    const label = document.createElement('label');
+    label.className = 'site-language-control';
+    label.innerHTML = '<span data-language-label>Language</span><select data-language-select aria-label="Language"><option value="en">English</option><option value="ms">Bahasa Melayu</option><option value="zh">中文</option></select>';
+    document.body.appendChild(label);
+  }
   function sponsor() {
     const mount = document.querySelector('[data-sponsor-mount]');
     if (!mount) return;
@@ -107,11 +120,20 @@
     event.preventDefault();
     window.location.assign('https://bcb88j.com/RFAA8723385');
   }
-  document.addEventListener('DOMContentLoaded', () => {
+  function boot() {
+    mountLanguageControl();
     document.querySelectorAll('[data-language-select]').forEach(el => el.addEventListener('change',() => setLanguage(el.value)));
     document.querySelectorAll('[data-sponsored-dictionary]').forEach(el => el.addEventListener('click', dictionarySponsorClick));
     document.querySelectorAll('[data-dictionary-cta]').forEach(el => el.addEventListener('click', dictionaryCtaClick));
     apply(); sponsor();
-  });
+  }
   window.SiteLocale = Object.freeze({ t, getLanguage: () => current, setLanguage, apply });
+  if (!document.readyState || document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  if (document.head && typeof document.createElement === 'function' && !document.querySelector('script[data-site-pages-locale]')) {
+    const script = document.createElement('script');
+    script.src = '/assets/site-pages-locale.js?v=20261003';
+    script.dataset.sitePagesLocale = '';
+    document.head.appendChild(script);
+  }
 })();

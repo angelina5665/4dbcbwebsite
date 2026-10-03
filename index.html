@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="stylesheet" href="/assets/theme.css?v=20261001">
-<script src="/assets/theme.js?v=20261001"></script>
+<link rel="stylesheet" href="/assets/theme.css?v=20261003">
+<script src="/assets/theme.js?v=20261003"></script>
 <title>Malaysia 4D Results | 4DVIP88</title>
 <meta name="description" content="Check the latest published Malaysia 4D result snapshot on 4DVIP88 for Sports Toto, Magnum 4D, Da Ma Cai and regional providers, with provider draw dates and update times.">
 <meta name="keywords" content="4d,result,live,damacai,magnum 4d,toto 4d,keputusan 4d">
@@ -197,12 +197,15 @@ body{background:#f4f5f7}
 .checker button{font-size:15px;font-weight:700;padding:10px 20px;border:0;border-radius:8px;background:#c00000;color:#fff;cursor:pointer}
 .checker button:hover{background:#a30000}
 .dictionary-cta-row{max-width:560px;margin:10px auto 0;padding:0 12px;text-align:center}
-.dictionary-cta{display:block;padding:11px 16px;border:2px solid #c00000;border-radius:8px;background:#fff;color:#9d0000;font-size:15px;font-weight:800;text-decoration:none}
+.resource-cta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dictionary-cta{display:flex;align-items:center;justify-content:center;gap:8px;min-height:54px;padding:10px 12px;border:2px solid #c00000;border-radius:8px;background:#fff;color:#9d0000;font-size:14px;font-weight:800;line-height:1.25;text-decoration:none}
+.resource-cta-icon{font-size:21px;line-height:1}
 .dictionary-cta:hover{background:#fff2f2;color:#790000}
 .dictionary-cta-note{display:block;margin-top:5px;color:#666;font-size:11px;line-height:1.35}
 html[data-theme="dark"] .dictionary-cta{background:#231717;color:#ffb1b1}
 html[data-theme="dark"] .dictionary-cta:hover{background:#351919;color:#ffd0d0}
 html[data-theme="dark"] .dictionary-cta-note{color:#bbb}
+@media (max-width:480px){.resource-cta-grid{grid-template-columns:1fr}}
 .checkmsg{text-align:center;font-size:14.5px;margin:8px 0 0;min-height:20px;font-weight:600}
 .checkmsg.win{color:#0a7a3d}
 .checkmsg.lose{color:#888}
@@ -310,10 +313,13 @@ html[data-theme="dark"] .dictionary-cta-note{color:#bbb}
 
 <div class="container"><p id="updated" class="updated"></p><p id="nextdraw" class="statusline"></p></div>
 
-<div class="checker"><input id="checknum" inputmode="numeric" maxlength="4" placeholder="Check your number — e.g. 1234" aria-label="Check your 4D number"><button type="button" id="checkbtn">Check</button></div>
+<div class="checker"><input id="checknum" inputmode="numeric" maxlength="4" placeholder="Check your number — e.g. 1234" aria-label="Check your 4D number" data-i18n-placeholder="homePlaceholder"><button type="button" id="checkbtn" data-i18n="homeCheck">Check</button></div>
 <div class="dictionary-cta-row">
-  <a class="dictionary-cta" href="/dictionary.html" data-dictionary-cta data-i18n="dictionaryCta" aria-describedby="dictionary-cta-note">Explore the 3D &amp; 4D Dictionary</a>
-  <small id="dictionary-cta-note" class="dictionary-cta-note" data-i18n="dictionaryCtaNotice">This shortcut may take you to our sponsored banner partner.</small>
+  <div class="resource-cta-grid">
+    <a class="dictionary-cta" href="/dictionary.html" data-dictionary-cta aria-describedby="dictionary-cta-note"><span class="resource-cta-icon" aria-hidden="true">⌕</span><span data-i18n="dictionaryCta">Explore the 3D &amp; 4D Dictionary</span></a>
+    <a class="dictionary-cta" href="/play-guide/"><span class="resource-cta-icon" aria-hidden="true">▤</span><span data-i18n="guideCta">Payout &amp; How to Bet Guide</span></a>
+  </div>
+  <small id="dictionary-cta-note" class="dictionary-cta-note" data-i18n="dictionaryCtaNotice">The Dictionary shortcut may take you to our sponsored banner partner.</small>
 </div>
 <p id="checkmsg" class="checkmsg"></p>
 <div class="chips" id="chips"></div>
@@ -409,13 +415,21 @@ const LAYOUT = [
 /* ============ helpers ============ */
 const esc = s => String(s == null ? "" : s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
+function homeLanguage(){ return typeof window !== "undefined" && window.SiteLocale ? window.SiteLocale.getLanguage() : "en"; }
+const HOME_UI = {
+  en: { malaysia:"4D RESULT MALAYSIA", singapore:"4D RESULT SINGAPORE", east:"4D RESULT SABAH SARAWAK", date:"Date", drawNo:"Draw No", first:"1st Prize 首獎", second:"2nd Prize 二獎", third:"3rd Prize 三獎", special:"Special 特別獎", consolation:"Consolation 安慰獎", draw:"Draw", updated:"updated", next:"Next draw", inWord:"in", progress:"Draw in progress", announced:"results appear here as they are announced", found:"found in", absent:"not in this draw's results", loading:"Results are loading", loadError:"We could not load the latest results just now. Please refresh in a moment." },
+  ms: { malaysia:"KEPUTUSAN 4D MALAYSIA", singapore:"KEPUTUSAN 4D SINGAPURA", east:"KEPUTUSAN 4D SABAH SARAWAK", date:"Tarikh", drawNo:"No. cabutan", first:"Hadiah Pertama 首獎", second:"Hadiah Kedua 二獎", third:"Hadiah Ketiga 三獎", special:"Hadiah Khas 特別獎", consolation:"Hadiah Saguhati 安慰獎", draw:"Cabutan", updated:"dikemas kini", next:"Cabutan seterusnya", inWord:"dalam", progress:"Cabutan sedang berlangsung", announced:"keputusan dipaparkan apabila diumumkan", found:"ditemui dalam", absent:"tidak terdapat dalam keputusan cabutan ini", loading:"Keputusan sedang dimuatkan", loadError:"Keputusan terkini tidak dapat dimuatkan sekarang. Sila muat semula sebentar lagi." },
+  zh: { malaysia:"马来西亚 4D 开彩结果", singapore:"新加坡 4D 开彩结果", east:"沙巴砂拉越 4D 开彩结果", date:"日期", drawNo:"期号", first:"头奖 首獎", second:"二奖 二獎", third:"三奖 三獎", special:"特别奖 特別獎", consolation:"安慰奖 安慰獎", draw:"开彩", updated:"更新于", next:"下次开彩", inWord:"还有", progress:"正在开彩", announced:"结果公布后会显示在这里", found:"出现于", absent:"未出现在本期结果中", loading:"结果正在加载", loadError:"暂时无法加载最新结果，请稍后刷新。" }
+};
+function homeUI(key){ const lang=homeLanguage(); return (HOME_UI[lang] || HOME_UI.en)[key] || HOME_UI.en[key] || key; }
+
 /* ============ block renderers ============ */
 function blkPrizes3(b) {
   const head = b.title ? '<tr><td colspan="2" class="resultprizelable">' + esc(b.title) + '</td></tr>' : "";
   return '<table class="resultTable2"><tbody>' + head +
-    '<tr><td style="width:45%" class="resultprizelable">1st Prize 首獎</td><td class="resulttop prize1" style="width:55%">' + esc(b.first) + '</td></tr>' +
-    '<tr><td style="width:45%" class="resultprizelable">2nd Prize 二獎</td><td class="resulttop">' + esc(b.second) + '</td></tr>' +
-    '<tr><td style="width:45%" class="resultprizelable">3rd Prize 三獎</td><td class="resulttop">' + esc(b.third) + '</td></tr>' +
+    '<tr><td style="width:45%" class="resultprizelable">' + esc(homeUI("first")) + '</td><td class="resulttop prize1" style="width:55%">' + esc(b.first) + '</td></tr>' +
+    '<tr><td style="width:45%" class="resultprizelable">' + esc(homeUI("second")) + '</td><td class="resulttop">' + esc(b.second) + '</td></tr>' +
+    '<tr><td style="width:45%" class="resultprizelable">' + esc(homeUI("third")) + '</td><td class="resulttop">' + esc(b.third) + '</td></tr>' +
     '</tbody></table>';
 }
 
@@ -494,14 +508,14 @@ function buildBlocks(key, r) {
 
   if (key === "damacai13d") {
     if (r.d3rows) out.push({ type: "d3", rows: r.d3rows });
-    if (r.special) out.push({ type: "grid", title: "Special 特別獎", cols: 3, numbers: r.special });
-    if (r.consolation) out.push({ type: "grid", title: "Consolation 安慰獎", cols: 3, numbers: r.consolation });
+    if (r.special) out.push({ type: "grid", title: homeUI("special"), cols: 3, numbers: r.special });
+    if (r.consolation) out.push({ type: "grid", title: homeUI("consolation"), cols: 3, numbers: r.consolation });
     return out;
   }
 
   if (r.first) out.push({ type: "prizes3", first: r.first, second: r.second, third: r.third });
-  if (r.special) out.push({ type: "grid", title: "Special 特別獎", cols: 5, numbers: r.special });
-  if (r.consolation) out.push({ type: "grid", title: "Consolation 安慰獎", cols: 5, numbers: r.consolation });
+  if (r.special) out.push({ type: "grid", title: homeUI("special"), cols: 5, numbers: r.special });
+  if (r.consolation) out.push({ type: "grid", title: homeUI("consolation"), cols: 5, numbers: r.consolation });
   if (r.threeD) out.push({ type: "prizes3", title: "3D", first: r.threeD.first, second: r.threeD.second, third: r.threeD.third });
   return out;
 }
@@ -543,8 +557,8 @@ function cardHTML(key, r, data) {
       '<td class="headlabel" style="background:' + st.headBg + ';color:' + st.headColor + '">' + providerName + '</td>' +
     '</tr></tbody></table>' +
     '<table class="resultTable2"><tbody><tr>' +
-      '<td class="resultdrawdate"><span class="datebtn">Date: ' + esc(date) + ' (' + esc(day) + ')</span></td>' +
-      '<td class="resultdrawdate" style="text-align:right">Draw No: ' + esc(r.drawNo || "") + '</td>' +
+      '<td class="resultdrawdate"><span class="datebtn">' + esc(homeUI("date")) + ': ' + esc(date) + ' (' + esc(day) + ')</span></td>' +
+      '<td class="resultdrawdate" style="text-align:right">' + esc(homeUI("drawNo")) + ': ' + esc(r.drawNo || "") + '</td>' +
     '</tr></tbody></table>' +
     blocks +
   '</div>';
@@ -552,14 +566,15 @@ function cardHTML(key, r, data) {
 
 function resultsHTML(data) {
   const providers = data.providers || {};
-  return LAYOUT.map(sec => {
+  return LAYOUT.map((sec, secIndex) => {
     const items = sec.items.map(it => {
       if (it.banner) return cardBannerHTML(it.banner);
       const r = providers[it.p];
       return r ? cardHTML(it.p, r, data) : "";
     }).join("");
     const heading = sec.heading === "h1" ? "h1" : "h2";
-    return '<div' + (sec.id ? ' id="' + esc(sec.id) + '"' : '') + ' class="section-bar"><' + heading + '><a href="' + esc(sec.href) + '">' + esc(sec.title) + '</a></' + heading + '></div>' +
+    const title = [homeUI("malaysia"), homeUI("singapore"), homeUI("east")][secIndex] || sec.title;
+    return '<div' + (sec.id ? ' id="' + esc(sec.id) + '"' : '') + ' class="section-bar"><' + heading + '><a href="' + esc(sec.href) + '">' + esc(title) + '</a></' + heading + '></div>' +
       '<div class="row">' + items + '</div>' +
       (sec.bannerAfter ? bannerHTML(sec.bannerAfter) : "");
   }).join("");
@@ -572,15 +587,17 @@ function render(data) {
   const providers = data.providers || {};
   const app = document.getElementById("app");
   const snapshot = data.updated || "";
-  if (!app.querySelector(".outerbox") || app.dataset.resultsUpdated !== snapshot) {
+  const lang = homeLanguage();
+  if (!app.querySelector(".outerbox") || app.dataset.resultsUpdated !== snapshot || app.dataset.resultsLanguage !== lang) {
     app.innerHTML = resultsHTML(data);
     app.dataset.resultsUpdated = snapshot;
+    app.dataset.resultsLanguage = lang;
   }
 
   const stamp = document.getElementById("updated");
   if (stamp) {
     stamp.textContent = data.drawDate
-      ? "Draw " + data.drawDate + " (" + data.drawDay + ")  ·  updated " + (data.updated || "")
+      ? homeUI("draw") + " " + data.drawDate + " (" + data.drawDay + ")  ·  " + homeUI("updated") + " " + (data.updated || "")
       : "";
   }
 
@@ -593,9 +610,9 @@ function render(data) {
 
 function showError() {
   document.getElementById("app").innerHTML =
-    '<div class="section-bar"><h2>Results are loading</h2></div>' +
+    '<div class="section-bar"><h2>' + esc(homeUI("loading")) + '</h2></div>' +
     '<p style="padding:24px 12px;text-align:center;color:#666">' +
-    'We could not load the latest results just now. Please refresh in a moment.</p>';
+    esc(homeUI("loadError")) + '</p>';
 }
 
 function loadResults(first){
@@ -639,7 +656,12 @@ function nextDrawInfo(){
     const ms = d - n;
     if (ms <= 0) continue;
     const days = Math.floor(ms/86400000), hrs = Math.floor(ms%86400000/3600000), mins = Math.floor(ms%3600000/60000);
-    const names = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const namesByLanguage = {
+      en:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+      ms:["Ahad","Isnin","Selasa","Rabu","Khamis","Jumaat","Sabtu"],
+      zh:["星期日","星期一","星期二","星期三","星期四","星期五","星期六"]
+    };
+    const names = namesByLanguage[homeLanguage()] || namesByLanguage.en;
     let left = "";
     if (days > 0) left = days + "d " + hrs + "h";
     else if (hrs > 0) left = hrs + "h " + mins + "m";
@@ -655,8 +677,8 @@ function renderCountdown(){
   const info = nextDrawInfo();
   if (!info) { el.innerHTML = ""; return; }
   el.innerHTML = info.live
-    ? '<span class="livepulse"></span><b>Draw in progress</b> — results appear here as they are announced'
-    : 'Next draw: <b>' + info.day + ' 7:00pm</b> — in ' + info.left;
+    ? '<span class="livepulse"></span><b>' + esc(homeUI("progress")) + '</b> — ' + esc(homeUI("announced"))
+    : esc(homeUI("next")) + ': <b>' + esc(info.day) + ' 7:00pm</b> — ' + esc(homeUI("inWord")) + ' ' + esc(info.left);
 }
 setInterval(renderCountdown, 30000);
 
@@ -697,12 +719,12 @@ function runCheck(){
     }
   });
   if (hits.length) {
-    msg.textContent = "🎉 " + num + " found in: " + hits.join(", ");
+    msg.textContent = "🎉 " + num + " " + homeUI("found") + ": " + hits.join(", ");
     msg.className = "checkmsg win";
     const first = document.querySelector(".hit");
     if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
   } else {
-    msg.textContent = num + " — not in this draw's results";
+    msg.textContent = num + " — " + homeUI("absent");
     msg.className = "checkmsg lose";
   }
 }
@@ -880,7 +902,7 @@ function pollLiveFeed(){
         render(__data);
         const el = document.getElementById("updated");
         if (el && __data.drawDate) {
-          el.textContent = "Draw " + __data.drawDate + " (" + (__data.drawDay || "") + ")  ·  LIVE feed " +
+          el.textContent = homeUI("draw") + " " + __data.drawDate + " (" + (__data.drawDay || "") + ")  ·  LIVE " +
             mytNow().toTimeString().slice(0,5) + " MYT";
         }
       }
@@ -891,6 +913,10 @@ function pollLiveFeed(){
 setInterval(function(){ if (inDrawWindow()) pollLiveFeed(); }, 60 * 1000);
 setInterval(function(){ if (!inDrawWindow()) pollLiveFeed(); }, 10 * 60 * 1000);
 setTimeout(pollLiveFeed, 4000);
+document.addEventListener("site-language-change", function(){
+  if (__data) render(__data);
+  else renderCountdown();
+});
 
 </script>
 </body>

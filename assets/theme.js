@@ -43,12 +43,21 @@
     document.body.appendChild(label);
   }
 
+  function ensureLocale() {
+    if (window.SiteLocale || document.querySelector('script[data-site-locale-loader]')) return;
+    const script = document.createElement('script');
+    script.src = '/assets/site-locale.js?v=20261003';
+    script.dataset.siteLocaleLoader = '';
+    document.head.appendChild(script);
+  }
+
   const systemChanged = () => {
     if (savedPreference() === 'auto') applyTheme('auto');
   };
   if (typeof media.addEventListener === 'function') media.addEventListener('change', systemChanged);
   else if (typeof media.addListener === 'function') media.addListener(systemChanged);
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountControl);
-  else mountControl();
+  function boot() { mountControl(); ensureLocale(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
