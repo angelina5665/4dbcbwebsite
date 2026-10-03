@@ -587,7 +587,13 @@ function render(data) {
   __data = data;
   const providers = data.providers || {};
   const app = document.getElementById("app");
-  const snapshot = data.updated || "";
+  // redraw whenever the numbers change, not only when the saved copy changes,
+  // so results arriving from the live feed actually reach the cards
+  const snapshot = (data.updated || "") + "|" + JSON.stringify(Object.keys(providers).map(function(k){
+    const p = providers[k] || {};
+    return [k, p.drawDate, p.first, p.second, p.third, (p.special || []).join(","), (p.consolation || []).join(","),
+            (p.fiveD || []).join(","), (p.sixD || [])[0], ((p.d3rows || [])[0] || {}).value, (p.lotto || []).length];
+  }));
   const lang = homeLanguage();
   if (!app.querySelector(".outerbox") || app.dataset.resultsUpdated !== snapshot || app.dataset.resultsLanguage !== lang) {
     app.innerHTML = resultsHTML(data);
