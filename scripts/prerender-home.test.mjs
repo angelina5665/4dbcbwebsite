@@ -67,6 +67,8 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.match(html, /<title>Malaysia 4D Results \| 4DVIP88<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]*4DVIP88[^"]*">/);
   assert.match(html, /<meta property="og:site_name" content="4DVIP88">/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/my4d\.co\/">/);
+  assert.doesNotMatch(html, /<link rel="canonical" href="https?:\/\/(?:www\.)?4dvip88\.com\//);
   assert.match(html, /<link rel="alternate" hreflang="en-MY" href="https:\/\/my4d\.co\/">/);
   assert.match(html, /<link rel="alternate" hreflang="ms-MY" href="https:\/\/my4d\.co\/ms\/">/);
   assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/my4d\.co\/">/);
@@ -74,6 +76,14 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal(websiteSchema.name, "4DVIP88");
   assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
   assert.equal(websiteSchema.url, "https://my4d.co/");
+  assert.match(html, /href="\/assets\/theme\.css\?v=20261001"/);
+  assert.match(html, /src="\/assets\/theme\.js\?v=20261001"/);
+  assert.match(html, /href="\/dictionary\.html"[^>]*data-dictionary-cta/);
+  assert.match(html, /id="dictionary-cta-note"[^>]*data-i18n="dictionaryCtaNotice"/);
+  for (const sponsor of ["bcb88j.com", "2bvbx.com", "v12luck.com", "3x44my.com"]) {
+    assert.match(html, new RegExp(`href="https:\\/\\/${sponsor.replace('.', '\\.')}`));
+  }
+  assert.equal((html.match(/class="ts-slide"/g) || []).length, 4);
   assert.ok(html.includes(`data-results-updated="${results.updated}"`));
   assert.equal(results.drawDate, latestProvider.drawDate);
   assert.equal(results.drawDay, latestProvider.drawDay);

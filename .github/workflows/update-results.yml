@@ -37,9 +37,9 @@ jobs:
       - name: Validate generated pages
         run: |
           node scripts/prerender-home.mjs --check
-          node --test scripts/prerender-home.test.mjs
+          node --test scripts/*.test.mjs
           python scripts/prerender_supporting_pages.py --check
-          python -m unittest scripts/test_prerender_supporting_pages.py -v
+          python -m unittest discover -s scripts -p 'test_*.py' -v
 
       - name: Publish if anything changed
         run: |
