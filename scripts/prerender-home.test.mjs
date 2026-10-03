@@ -76,8 +76,8 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal(websiteSchema.name, "4DVIP88");
   assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
   assert.equal(websiteSchema.url, "https://my4d.co/");
-  assert.match(html, /href="\/assets\/theme\.css\?v=20261003"/);
-  assert.match(html, /src="\/assets\/theme\.js\?v=20261003"/);
+  assert.match(html, /href="\/assets\/theme\.css\?v=20261003r1"/);
+  assert.match(html, /src="\/assets\/theme\.js\?v=20261003r1"/);
   assert.match(html, /href="\/dictionary\.html"[^>]*data-dictionary-cta/);
   assert.match(html, /id="dictionary-cta-note"[^>]*data-i18n="dictionaryCtaNotice"/);
   for (const sponsor of ["bcb88j.com", "2bvbx.com", "v12luck.com", "3x44my.com"]) {

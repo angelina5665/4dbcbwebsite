@@ -75,6 +75,10 @@
     });
     document.querySelectorAll('a,button,option,th,td,caption,summary,strong,h1,h2,h3,small,label>span').forEach(el => {
       if (el.dataset.i18n || el.closest('[data-i18n-html]')) return;
+      // Never replace a container's textContent: doing so removes its image,
+      // picture, icon, link, or other child markup. Text leaves are handled by
+      // the TreeWalker above and remain safe to translate and restore.
+      if (el.children.length) return;
       if (!originalText.has(el)) originalText.set(el, el.textContent);
       const base = originalText.get(el).trim();
       if (lang === 'en') { el.textContent = originalText.get(el); return; }

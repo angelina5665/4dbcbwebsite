@@ -46,7 +46,7 @@
   function ensureLocale() {
     if (window.SiteLocale || document.querySelector('script[data-site-locale-loader]')) return;
     const script = document.createElement('script');
-    script.src = '/assets/site-locale.js?v=20261003';
+    script.src = '/assets/site-locale.js?v=20261003r1';
     script.dataset.siteLocaleLoader = '';
     document.head.appendChild(script);
   }

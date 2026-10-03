@@ -16,8 +16,8 @@ test('every sitemap page loads the shared theme assets', () => {
   assert.equal(urls.length, 24);
   for (const url of urls) {
     const html = readFileSync(new URL(localPath(url), import.meta.url), 'utf8');
-    assert.match(html, /href="\/assets\/theme\.css\?v=20261003"/);
-    assert.match(html, /src="\/assets\/theme\.js\?v=20261003"/);
+    assert.match(html, /href="\/assets\/theme\.css\?v=20261003r1"/);
+    assert.match(html, /src="\/assets\/theme\.js\?v=20261003r1"/);
   }
 });
 
@@ -32,8 +32,16 @@ test('theme loads the site-wide language system', () => {
   const js = readFileSync(new URL('../assets/theme.js', import.meta.url), 'utf8');
   const locale = readFileSync(new URL('../assets/site-locale.js', import.meta.url), 'utf8');
   const pages = readFileSync(new URL('../assets/site-pages-locale.js', import.meta.url), 'utf8');
-  assert.match(js, /site-locale\.js\?v=20261003/);
-  assert.match(locale, /site-pages-locale\.js\?v=20261003/);
+  assert.match(js, /site-locale\.js\?v=20261003r1/);
+  assert.match(locale, /site-pages-locale\.js\?v=20261003r1/);
   for (const language of ['English', 'Bahasa Melayu', '中文']) assert.match(locale, new RegExp(language));
   for (const path of ['about.html', 'privacy.html', 'disclaimer.html', 'methodology.html', 'affiliate-disclosure.html']) assert.match(pages, new RegExp(path.replace('.', '\\.')));
+});
+
+test('site-wide translation preserves images, icons, links, and other child markup', () => {
+  const pages = readFileSync(new URL('../assets/site-pages-locale.js', import.meta.url), 'utf8');
+  const containerGuard = pages.indexOf('if (el.children.length) return;');
+  const destructiveAssignment = pages.indexOf('el.textContent = originalText.get(el);', containerGuard);
+  assert.ok(containerGuard >= 0, 'translation must skip elements that contain child markup');
+  assert.ok(destructiveAssignment > containerGuard, 'the child-markup guard must run before textContent assignment');
 });

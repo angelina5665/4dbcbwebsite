@@ -132,7 +132,7 @@
   else boot();
   if (document.head && typeof document.createElement === 'function' && !document.querySelector('script[data-site-pages-locale]')) {
     const script = document.createElement('script');
-    script.src = '/assets/site-pages-locale.js?v=20261003';
+    script.src = '/assets/site-pages-locale.js?v=20261003r1';
     script.dataset.sitePagesLocale = '';
     document.head.appendChild(script);
   }
