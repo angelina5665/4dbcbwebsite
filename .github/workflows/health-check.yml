@@ -6,10 +6,16 @@ on:
     - cron: "50 10,12,14 * * *"
     - cron: "20 4 * * *"
   workflow_dispatch:
+    inputs:
+      test_alarm:
+        description: "Send a practice alert to prove the email works"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
   issues: write
+  actions: read
 
 jobs:
   check:
@@ -23,8 +29,29 @@ jobs:
           python-version: "3.12"
 
       - name: Check the whole results chain
-        id: health
-        run: python healthcheck.py 2>&1 | tee report.txt
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -o pipefail
+          status=0
+          python healthcheck.py > report.txt 2>&1 || status=1
+
+          # the results robot crashing several runs in a row is a problem on its own
+          fails=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Update 4D results" --limit 3 \
+                    --json conclusion --jq '[.[] | select(.conclusion == "failure")] | length')
+          if [ "$fails" = "3" ]; then
+            echo " - The results robot has failed its last 3 runs" >> report.txt
+            status=1
+          fi
+
+          if [ "${{ inputs.test_alarm }}" = "true" ]; then
+            echo " - PRACTICE ALARM: this is only a test that the alert email reaches you. Nothing is wrong." >> report.txt
+            status=1
+          fi
+
+          cat report.txt
+          exit $status
 
       - name: Raise the alarm (opens an issue, which emails the owner)
         if: failure()
