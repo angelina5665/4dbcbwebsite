@@ -5,7 +5,8 @@
     'https://bcb88j.com/RFAA8723385',
     'https://2bvbx.com/RFMY4D.BVBX',
     'https://v12luck.com/RFMY4D.V12',
-    'https://3x44my.com/RFMY4D.X44'
+    'https://3x44my.com/RFMY4D.X44',
+    'https://ttbet.fun/RFAA9570A03'
   ]);
   const notices = {
     en: 'Payout and How to Bet buttons have a 50% chance of opening one randomly selected sponsored partner.',

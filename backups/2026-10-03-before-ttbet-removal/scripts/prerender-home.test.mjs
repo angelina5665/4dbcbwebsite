@@ -80,11 +80,10 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.match(html, /src="\/assets\/theme\.js\?v=20261003r1"/);
   assert.match(html, /href="\/dictionary\.html"[^>]*data-dictionary-cta/);
   assert.match(html, /id="dictionary-cta-note"[^>]*data-i18n="dictionaryCtaNotice"/);
-  for (const sponsor of ["bcb88j.com", "2bvbx.com", "v12luck.com", "3x44my.com"]) {
+  for (const sponsor of ["bcb88j.com", "2bvbx.com", "v12luck.com", "3x44my.com", "ttbet.fun"]) {
     assert.match(html, new RegExp(`href="https:\\/\\/${sponsor.replace('.', '\\.')}`));
   }
-  assert.doesNotMatch(html, /ttbet|RFAA9570A03/i);
-  assert.equal((html.match(/class="ts-slide"/g) || []).length, 4);
+  assert.equal((html.match(/class="ts-slide"/g) || []).length, 5);
   assert.ok(html.includes(`data-results-updated="${results.updated}"`));
   assert.equal(results.drawDate, latestProvider.drawDate);
   assert.equal(results.drawDay, latestProvider.drawDay);
