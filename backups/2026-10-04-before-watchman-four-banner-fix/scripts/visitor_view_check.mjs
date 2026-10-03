@@ -3,7 +3,7 @@
 // numbers, so the watchman can raise the alarm.
 import { chromium } from 'playwright';
 
-const SITES = ['https://my4d.co/'];
+const SITES = ['https://my4d.co/', 'https://4dresult1.com/'];
 const SOURCE = 'https://www.4dmoon.com/';
 
 // card id -> [feed region, section, field]

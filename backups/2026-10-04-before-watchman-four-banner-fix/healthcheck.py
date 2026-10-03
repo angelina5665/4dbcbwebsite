@@ -117,8 +117,8 @@ try:
             problems.append("%s lost its %s (page was overwritten?)" % (SITE, label))
     if re.search(r'<link rel="canonical" href="https?://(?:www\.)?4dvip88\.com/', html):
         problems.append("%s canonical reverted to the previous domain" % SITE)
-    if html.count('class="ts-slide"') != 4:
-        problems.append("%s no longer has exactly four banner slides" % SITE)
+    if html.count('class="ts-slide"') != 5:
+        problems.append("%s no longer has exactly five banner slides" % SITE)
 except Exception as e:
     problems.append("%s unreachable: %s" % (SITE, e))
 
