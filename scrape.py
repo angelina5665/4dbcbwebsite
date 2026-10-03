@@ -233,6 +233,38 @@ def finalize_snapshot(data):
     return data
 
 
+def result_facts(data):
+    """Return only draw facts; the fetch timestamp is not a result change."""
+    return {key: value for key, value in data.items() if key != "updated"}
+
+
+def snapshot_changed(candidate, baseline):
+    return result_facts(candidate) != result_facts(baseline)
+
+
+def validate_against_baseline(candidate, baseline):
+    """Refuse incomplete or older upstream snapshots."""
+    baseline_providers = baseline.get("providers") or {}
+    candidate_providers = candidate.get("providers") or {}
+    missing = sorted(set(baseline_providers) - set(candidate_providers))
+    if missing:
+        raise ValueError("candidate omits existing providers: %s" % ", ".join(missing))
+
+    for key, previous in baseline_providers.items():
+        current = candidate_providers[key]
+        previous_date = validated_draw_date(
+            previous.get("drawDate"), previous.get("drawDay"), "baseline provider %r" % key
+        )
+        current_date = validated_draw_date(
+            current.get("drawDate"), current.get("drawDay"), "candidate provider %r" % key
+        )
+        if current_date < previous_date:
+            raise ValueError(
+                "candidate provider %r regresses from %s to %s"
+                % (key, previous.get("drawDate"), current.get("drawDate"))
+            )
+
+
 def fetch_grand_dragon():
     """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
     raw = json.loads(fetch(GD_SOURCE))
@@ -276,6 +308,23 @@ def main():
         print("Invalid result snapshot (%s) - refusing to overwrite results.json"
               % error, file=sys.stderr)
         return 1
+
+    try:
+        with open(OUT, "r", encoding="utf-8") as f:
+            baseline = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        baseline = None
+
+    if baseline is not None:
+        try:
+            validate_against_baseline(data, baseline)
+        except ValueError as error:
+            print("Unsafe result snapshot (%s) - refusing to overwrite results.json"
+                  % error, file=sys.stderr)
+            return 1
+        if not snapshot_changed(data, baseline):
+            print("No factual result change - keeping the existing snapshot and timestamp")
+            return 0
 
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=1)

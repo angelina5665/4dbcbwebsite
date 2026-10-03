@@ -2,10 +2,12 @@ name: Update 4D results
 
 on:
   schedule:
-    # every 15 minutes from 5pm to 2am Malaysia time (09:00-17:59 UTC)
-    - cron: "*/5 9-17 * * *"
-    # once an hour the rest of the day, to catch special draws
-    - cron: "30 0-8,18-23 * * *"
+    # Prime release window: 6:57pm, then every 5 minutes from 7:02pm-10:57pm MYT.
+    # West Malaysia draws normally release from 7pm; regional operators can vary.
+    - cron: "57 10 * * *"
+    - cron: "2-57/5 11-14 * * *"
+    # Off-boundary hourly catch-up outside the prime window, including special draws.
+    - cron: "17 0-10,15-23 * * *"
   workflow_dispatch:
 
 permissions:

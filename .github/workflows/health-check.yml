@@ -45,6 +45,22 @@ jobs:
             status=1
           fi
 
+          # The result timestamp changes only for factual draw changes, so verify
+          # scheduler activity from Actions metadata instead of touching results.json.
+          last_run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Update 4D results" --limit 1 \
+                       --json createdAt --jq '.[0].createdAt // empty')
+          if [ -z "$last_run" ]; then
+            echo " - The results robot has no recorded run" >> report.txt
+            status=1
+          else
+            last_epoch=$(date -u -d "$last_run" +%s)
+            now_epoch=$(date -u +%s)
+            if [ $((now_epoch - last_epoch)) -gt 10800 ]; then
+              echo " - The results robot has not run for more than 3 hours (last run: $last_run)" >> report.txt
+              status=1
+            fi
+          fi
+
           if [ "${{ inputs.test_alarm }}" = "true" ]; then
             echo " - PRACTICE ALARM: this is only a test that the alert email reaches you. Nothing is wrong." >> report.txt
             status=1

@@ -96,6 +96,34 @@ class ScrapeSnapshotTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "newer than the latest provider date"):
             scrape.finalize_snapshot(snapshot)
 
+    def test_timestamp_only_change_is_not_a_result_change(self):
+        baseline = self.snapshot()
+        baseline["updated"] = "2026-08-26 19:15 MYT"
+        candidate = copy.deepcopy(baseline)
+        candidate["updated"] = "2026-08-26 19:20 MYT"
+        self.assertFalse(scrape.snapshot_changed(candidate, baseline))
+
+    def test_new_prize_is_a_result_change(self):
+        baseline = self.snapshot()
+        candidate = copy.deepcopy(baseline)
+        candidate["providers"]["cashsweep"]["first"] = "9999"
+        self.assertTrue(scrape.snapshot_changed(candidate, baseline))
+
+    def test_missing_existing_provider_is_rejected(self):
+        baseline = self.snapshot()
+        candidate = copy.deepcopy(baseline)
+        del candidate["providers"]["cashsweep"]
+        with self.assertRaisesRegex(ValueError, "omits existing providers: cashsweep"):
+            scrape.validate_against_baseline(candidate, baseline)
+
+    def test_provider_date_regression_is_rejected(self):
+        baseline = self.snapshot()
+        candidate = copy.deepcopy(baseline)
+        candidate["providers"]["gd4d"]["drawDate"] = "20-08-2026"
+        candidate["providers"]["gd4d"]["drawDay"] = "Thu"
+        with self.assertRaisesRegex(ValueError, "regresses"):
+            scrape.validate_against_baseline(candidate, baseline)
+
 
 if __name__ == "__main__":
     unittest.main()
