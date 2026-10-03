@@ -3,7 +3,7 @@ name: Site health watchman
 on:
   schedule:
     # a few times around each evening draw window, plus one daytime check
-    - cron: "50 10,12,14 * * *"
+    - cron: "50 10,11,12,14 * * *"
     - cron: "20 4 * * *"
   workflow_dispatch:
     inputs:
@@ -28,6 +28,15 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install a browser for the screen check
+        run: |
+          npm install --no-save --no-package-lock playwright@1.47.2
+          npx playwright install --with-deps chromium
+
       - name: Check the whole results chain
         shell: bash
         env:
@@ -36,6 +45,16 @@ jobs:
           set -o pipefail
           status=0
           python healthcheck.py > report.txt 2>&1 || status=1
+
+          # what a visitor actually sees: every card compared with the live source
+          node scripts/visitor_view_check.mjs >> report.txt 2>&1 || status=1
+
+          # the shared rule book both AI tools must keep passing
+          if ! node --test scripts/*.test.mjs > tests.txt 2>&1; then
+            echo " - Site tests are failing (a recent change broke a protected feature):" >> report.txt
+            grep -E "^not ok|AssertionError|Error:" tests.txt | head -8 | sed 's/^/     /' >> report.txt
+            status=1
+          fi
 
           # the results robot crashing several runs in a row is a problem on its own
           fails=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Update 4D results" --limit 3 \
