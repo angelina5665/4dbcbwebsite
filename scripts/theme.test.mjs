@@ -13,7 +13,7 @@ function localPath(url) {
 
 test('every sitemap page loads the shared theme assets', () => {
   const urls = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
-  assert.equal(urls.length, 24);
+  assert.equal(urls.length, 26);
   for (const url of urls) {
     const html = readFileSync(new URL(localPath(url), import.meta.url), 'utf8');
     assert.match(html, /href="\/assets\/theme\.css\?v=20261003r1"/);

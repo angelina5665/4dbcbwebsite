@@ -31,13 +31,7 @@ form?.addEventListener('submit', event => {
   const type = String(data.get('type'));
   const pool = String(data.get('pool'));
   const permutations = uniquePermutationCount(number);
-  const labels = {
-    normal: 'Normal (one exact order)',
-    rv: 'RV / Reverse (forward and reverse order)',
-    box: `BOX (${permutations} unique arrangements)`,
-    ibox: `IBOX (${permutations} arrangements; amount split evenly)`
-  };
-  const playLabel = labels[type] || labels.normal;
+  const playLabel = type === 'ibox' ? `IBOX / i-Perm (${permutations} unique arrangements)` : 'Straight (one exact order)';
 
   result.innerHTML = `<p><strong>Example slip</strong></p><p>${provider} · ${number} · ${playLabel} · ${pool} · RM${amount.toFixed(2)}</p><p>This is a practice summary only. Confirm product availability, cost and current rules with the provider before making any real purchase.</p>`;
 });
