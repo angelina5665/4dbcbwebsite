@@ -286,6 +286,31 @@ def fetch_grand_dragon():
     return card
 
 
+def lotto_in_progress(provider):
+    """True while the Toto lotto games are still being drawn (some balls not out yet)."""
+    for entry in (provider or {}).get("lotto") or []:
+        balls = entry.get("balls") or []
+        if len(balls) != 6 or any(not str(ball).isdigit() for ball in balls):
+            return True
+    return False
+
+
+def keep_complete_lotto(data, baseline):
+    """During the live draw, keep the last complete Toto cards instead of
+    publishing half-drawn balls, so the rest of the results can still be saved."""
+    providers = data.get("providers", {})
+    previous_all = (baseline or {}).get("providers") or {}
+    current = providers.get("totoextra")
+    previous = previous_all.get("totoextra")
+    if current and previous and lotto_in_progress(current) and not lotto_in_progress(previous):
+        # Toto 4D and the Toto lotto card must carry the same draw date, so hold both back together
+        providers["totoextra"] = previous
+        if previous_all.get("toto"):
+            providers["toto"] = previous_all["toto"]
+        return True
+    return False
+
+
 def main():
     html = fetch(SOURCE)
     data = parse(html)
@@ -316,6 +341,8 @@ def main():
         baseline = None
 
     if baseline is not None:
+        if keep_complete_lotto(data, baseline):
+            print("Toto lotto still being drawn - keeping the last complete lotto card for now")
         try:
             validate_against_baseline(data, baseline)
         except ValueError as error:

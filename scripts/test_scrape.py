@@ -125,5 +125,42 @@ class ScrapeSnapshotTests(unittest.TestCase):
             scrape.validate_against_baseline(candidate, baseline)
 
 
+class LottoInProgressTests(unittest.TestCase):
+    def toto(self, balls, draw_date="30-09-2026", draw_day="Wed"):
+        return {
+            "name": "SportsToto 5D, 6D, Lotto",
+            "drawDate": draw_date,
+            "drawDay": draw_day,
+            "lotto": [
+                {"title": "Star Toto 6/50", "balls": ["1", "2", "3", "4", "5", "6"]},
+                {"title": "Power Toto 6/55", "balls": balls},
+                {"title": "Supreme Toto 6/58", "balls": ["7", "8", "9", "10", "11", "12"]},
+            ],
+        }
+
+    def test_half_drawn_lotto_keeps_previous_complete_card(self):
+        previous = self.toto(["1", "27", "30", "37", "47", "52"])
+        live = self.toto(["3", "14", "", "", "", ""], "03-10-2026", "Sat")
+        previous_toto = {"name": "Toto 4D", "drawDate": "30-09-2026", "drawDay": "Wed", "first": "7161"}
+        live_toto = {"name": "Toto 4D", "drawDate": "03-10-2026", "drawDay": "Sat", "first": "9728"}
+        data = {"providers": {"totoextra": live, "toto": live_toto}}
+        baseline = {"providers": {"totoextra": previous, "toto": previous_toto}}
+        self.assertTrue(scrape.keep_complete_lotto(data, baseline))
+        self.assertIs(data["providers"]["totoextra"], previous)
+        self.assertIs(data["providers"]["toto"], previous_toto)
+
+    def test_complete_lotto_is_published(self):
+        previous = self.toto(["1", "27", "30", "37", "47", "52"])
+        fresh = self.toto(["3", "14", "22", "31", "40", "55"], "03-10-2026", "Sat")
+        data = {"providers": {"totoextra": fresh}}
+        self.assertFalse(scrape.keep_complete_lotto(data, {"providers": {"totoextra": previous}}))
+        self.assertIs(data["providers"]["totoextra"], fresh)
+
+    def test_no_baseline_leaves_data_alone(self):
+        live = self.toto(["3", "", "", "", "", ""])
+        data = {"providers": {"totoextra": live}}
+        self.assertFalse(scrape.keep_complete_lotto(data, None))
+
+
 if __name__ == "__main__":
     unittest.main()
