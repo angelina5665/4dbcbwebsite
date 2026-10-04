@@ -28,6 +28,10 @@ jobs:
           python-version: "3.12"
 
       - name: Fetch the latest results
+        env:
+          HUAWEI_RESULTS_BASE: https://api.huawei88.org
+          HUAWEI_RESULTS_MID: ${{ secrets.HUAWEI_RESULTS_MID }}
+          HUAWEI_RESULTS_PW: ${{ secrets.HUAWEI_RESULTS_PW }}
         run: python scrape.py
 
       - name: Prerender homepage results

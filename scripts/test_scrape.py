@@ -1,5 +1,6 @@
 import copy
 import unittest
+from unittest import mock
 
 import scrape
 
@@ -160,6 +161,54 @@ class LottoInProgressTests(unittest.TestCase):
         live = self.toto(["3", "", "", "", "", ""])
         data = {"providers": {"totoextra": live}}
         self.assertFalse(scrape.keep_complete_lotto(data, None))
+
+
+class NineLottoApiTests(unittest.TestCase):
+    def api_result(self):
+        return {
+            "status": {"success": True},
+            "draw_results": [{
+                "type": "N",
+                "label": "Nine Lotto",
+                "4d": {
+                    "first": "4807",
+                    "second": "7563",
+                    "third": "7125",
+                    "special": ["2878", "6208", "9649", "3276", "5421", "9765", "9096", "1516", "3802", "1993"],
+                    "consolation": ["8923", "1258", "5193", "0270", "6381", "6707", "8369", "2245", "2512", "1759"],
+                },
+            }],
+        }
+
+    def public_result(self):
+        card = scrape._huawei_nine_lotto_card(self.api_result(), "2026-10-03")
+        card["drawNo"] = "1508/2026"
+        return card
+
+    def test_huawei_result_maps_to_existing_card_shape(self):
+        card = scrape._huawei_nine_lotto_card(self.api_result(), "2026-10-03")
+        self.assertEqual("03-10-2026", card["drawDate"])
+        self.assertEqual("Sat", card["drawDay"])
+        self.assertEqual("4807", card["first"])
+        self.assertEqual(10, len(card["special"]))
+        self.assertEqual(10, len(card["consolation"]))
+
+    def test_huawei_and_public_match_is_accepted_without_exposing_credentials(self):
+        with mock.patch.dict("os.environ", {"HUAWEI_RESULTS_MID": "test-manager", "HUAWEI_RESULTS_PW": "hidden"}), \
+             mock.patch.object(scrape, "fetch_huawei_nine_lotto", return_value=self.public_result()) as official, \
+             mock.patch.object(scrape, "_public_nine_lotto", return_value=self.public_result()):
+            card = scrape.fetch_nine_lotto()
+        official.assert_called_once_with("test-manager", "hidden")
+        self.assertEqual("1508/2026", card["drawNo"])
+
+    def test_disagreement_fails_closed(self):
+        official = self.public_result()
+        official["first"] = "0000"
+        with mock.patch.dict("os.environ", {"HUAWEI_RESULTS_MID": "test-manager", "HUAWEI_RESULTS_PW": "hidden"}), \
+             mock.patch.object(scrape, "fetch_huawei_nine_lotto", return_value=official), \
+             mock.patch.object(scrape, "_public_nine_lotto", return_value=self.public_result()):
+            with self.assertRaisesRegex(ValueError, "disagree on first"):
+                scrape.fetch_nine_lotto()
 
 
 if __name__ == "__main__":

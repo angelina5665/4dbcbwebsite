@@ -41,9 +41,10 @@ REQUIRED_PROVIDERS = (
     "cashsweep",
     "gd4d",
 )
+OPTIONAL_CURRENT_PROVIDERS = ("nine",)
 CLASSIC_PROVIDERS = set(REQUIRED_PROVIDERS) - {"totoextra"}
 FOUR_DIGIT_PROVIDERS = {
-    "damacai", "magnum", "toto", "singapore", "sabah88", "sandakan", "cashsweep", "gd4d"
+    "damacai", "magnum", "toto", "singapore", "sabah88", "sandakan", "cashsweep", "gd4d", "nine"
 }
 SIX_DIGIT_PROVIDERS = {"damacai13d"}
 MAX_RESULT_AGE_DAYS = 7
@@ -84,6 +85,7 @@ DISPLAY_NAMES = {
     "sandakan": "Sandakan Turf Club 4D",
     "cashsweep": "Special Cash Sweep 4D",
     "gd4d": "Grand Dragon 4D",
+    "nine": "Nine Lotto 4D",
 }
 
 
@@ -283,14 +285,17 @@ def validate_results_shape(
     else:
         actual = set(providers)
         expected = set(REQUIRED_PROVIDERS)
-        if actual != expected:
+        allowed = expected | set(OPTIONAL_CURRENT_PROVIDERS)
+        if not expected.issubset(actual) or not actual.issubset(allowed):
             missing_keys = sorted(expected - actual)
-            extra_keys = sorted(actual - expected)
+            extra_keys = sorted(actual - allowed)
             raise ValidationError(
                 "provider set mismatch; missing=" + ",".join(missing_keys or ["none"])
                 + "; extra=" + ",".join(extra_keys or ["none"])
             )
-        provider_keys = REQUIRED_PROVIDERS
+        provider_keys = REQUIRED_PROVIDERS + tuple(
+            key for key in OPTIONAL_CURRENT_PROVIDERS if key in providers
+        )
 
     reference_now = now or datetime.now(MYT)
     if reference_now.tzinfo is None or reference_now.utcoffset() is None:
@@ -784,7 +789,7 @@ def render_cards(results: dict[str, Any], provider_keys: Iterable[str]) -> str:
 
 def render_results_fragment(results: dict[str, Any]) -> str:
     groups = (
-        ("Malaysia 4D results", ("gd4d", "damacai", "magnum", "toto", "totoextra", "damacai13d")),
+        ("Malaysia 4D results", ("gd4d", "nine", "damacai", "magnum", "toto", "totoextra", "damacai13d")),
         ("Sabah and Sarawak 4D results", ("sabah88", "sandakan", "cashsweep")),
         ("Additional result reference", ("singapore",)),
     )

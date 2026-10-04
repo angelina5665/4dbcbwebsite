@@ -9,6 +9,7 @@ Run it with:  python scrape.py
 """
 
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -16,6 +17,9 @@ from datetime import datetime, timezone, timedelta
 
 SOURCE = "https://4d4d.co/"
 GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
+NINE_SOURCE = "https://4dgm.com/?view=home"
+NINE_CROSSCHECK_SOURCE = "https://lotto09.com/"
+HUAWEI_RESULTS_BASE = os.environ.get("HUAWEI_RESULTS_BASE", "https://api.huawei88.org").rstrip("/")
 OUT = "results.json"
 
 # 4d4d.co's name for each provider -> the key our website uses
@@ -45,6 +49,22 @@ def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; 4dvip-results/1.0)"})
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", "replace")
+
+
+def post_json(url, payload):
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "my4d-results/1.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8", "replace"))
 
 
 def clean(s):
@@ -286,6 +306,185 @@ def fetch_grand_dragon():
     return card
 
 
+def _nine_lotto_card(html, source):
+    """Parse one complete Nine Lotto 4D card from a supported public board."""
+    if source == "4dgm":
+        match = re.search(
+            r'<div class="card result ninelotto-result">(.*?)<!-- END -->',
+            html,
+            re.S | re.I,
+        )
+        if not match:
+            raise ValueError("4dgm has no Nine Lotto card")
+        block = match.group(1)
+        date_match = re.search(r"Date:\s*(\d{2})/(\d{2})/(\d{4})\s*\((\w{3})\)", block)
+        draw_match = re.search(r"Draw No:\s*([^<]+)</div>", block)
+        prizes = re.findall(r'class="col col-6 draw">\s*([0-9]{4})\s*</div>', block)
+        special_block = re.search(r"Special Prize.*?</div>(.*?)Consolation", block, re.S | re.I)
+        consolation_block = re.search(r"Consolation.*?</div>(.*?)<div class=\"row separator\">\s*<div class=\"col-12\">6D", block, re.S | re.I)
+
+        def values(section):
+            if not section:
+                return []
+            return [clean(value) for value in re.findall(r'class="[^"]*\bdraw\b[^"]*">(.*?)</div>', section.group(1), re.S)]
+
+        special = values(special_block)
+        consolation = [value for value in values(consolation_block) if value]
+        if not date_match or not draw_match or len(prizes) < 3:
+            raise ValueError("4dgm Nine Lotto card is incomplete")
+        card = {
+            "name": "Nine Lotto 4D",
+            "drawDate": "%s-%s-%s" % (date_match.group(1), date_match.group(2), date_match.group(3)),
+            "drawDay": date_match.group(4),
+            "drawNo": clean(draw_match.group(1)),
+            "first": prizes[0],
+            "second": prizes[1],
+            "third": prizes[2],
+            "special": special,
+            "consolation": consolation,
+        }
+    elif source == "lotto09":
+        start = html.lower().find('alt="logo-nine lotto"')
+        if start < 0:
+            raise ValueError("lotto09 has no Nine Lotto card")
+        end = html.lower().find('class="card outer-box', start + 1)
+        block = html[start:end if end > start else len(html)]
+        date_match = re.search(r'data-id="date">\s*(\d{2})-(\d{2})-(\d{4})\s*\((\w{3})\)', block)
+        draw_match = re.search(r'data-id="draw_no">\s*([^<]+)', block)
+
+        def field(name):
+            match = re.search(r'data-id="' + re.escape(name) + r'">\s*([^<]*)', block)
+            return clean(match.group(1)) if match else ""
+
+        special = [field("special-%d" % index) for index in range(1, 16)]
+        consolation = [field("consolation-%d" % index) for index in range(1, 11)]
+        special = special[:max((index for index, value in enumerate(special, 1) if value), default=0)]
+        if not date_match or not draw_match:
+            raise ValueError("lotto09 Nine Lotto card is incomplete")
+        card = {
+            "name": "Nine Lotto 4D",
+            "drawDate": "%s-%s-%s" % (date_match.group(1), date_match.group(2), date_match.group(3)),
+            "drawDay": date_match.group(4),
+            "drawNo": clean(draw_match.group(1)),
+            "first": field("first_prize"),
+            "second": field("second_prize"),
+            "third": field("third_prize"),
+            "special": special,
+            "consolation": consolation,
+        }
+    else:
+        raise ValueError("unsupported Nine Lotto source")
+
+    if not all(re.fullmatch(r"\d{4}", card[key] or "") for key in ("first", "second", "third")):
+        raise ValueError("Nine Lotto top prizes are incomplete")
+    if len(card["consolation"]) != 10 or any(not re.fullmatch(r"\d{4}", value) for value in card["consolation"]):
+        raise ValueError("Nine Lotto consolation list is incomplete")
+    if len(card["special"]) < 10 or any(value and value != "----" and not re.fullmatch(r"\d{4}", value) for value in card["special"]):
+        raise ValueError("Nine Lotto special list is incomplete")
+    validated_draw_date(card["drawDate"], card["drawDay"], "Nine Lotto")
+    return card
+
+
+def _public_nine_lotto():
+    """Require two independent public boards to agree on Nine Lotto."""
+    primary = _nine_lotto_card(fetch(NINE_SOURCE), "4dgm")
+    crosscheck = _nine_lotto_card(fetch(NINE_CROSSCHECK_SOURCE), "lotto09")
+    # Publishers centre the 13-slot Special board differently, so compare its
+    # ordered values while treating purely visual empty cells as layout only.
+    primary_special = [value for value in primary["special"] if re.fullmatch(r"\d{4}", value or "")]
+    crosscheck_special = [value for value in crosscheck["special"] if re.fullmatch(r"\d{4}", value or "")]
+    comparable = ("drawDate", "drawDay", "drawNo", "first", "second", "third", "consolation")
+    differences = [key for key in comparable if primary.get(key) != crosscheck.get(key)]
+    if primary_special != crosscheck_special:
+        differences.append("special")
+    if differences:
+        raise ValueError("Nine Lotto sources disagree on %s" % ", ".join(differences))
+    primary["special"] = primary_special
+    return primary
+
+
+def _huawei_nine_lotto_card(payload, draw_date):
+    status = payload.get("status") or {}
+    if status.get("success") is not True:
+        raise ValueError("Huawei result request was not successful")
+    rows = payload.get("draw_results")
+    if not isinstance(rows, list):
+        raise ValueError("Huawei response has no draw_results list")
+    result = next((row for row in rows if isinstance(row, dict) and row.get("type") == "N"), None)
+    if not result:
+        raise ValueError("Huawei response has no Nine Lotto result")
+    four_d = result.get("4d")
+    if not isinstance(four_d, dict):
+        raise ValueError("Huawei Nine Lotto response has no 4D result")
+    parsed_date = datetime.strptime(draw_date, "%Y-%m-%d")
+    card = {
+        "name": "Nine Lotto 4D",
+        "drawDate": parsed_date.strftime(DRAW_DATE_FORMAT),
+        "drawDay": parsed_date.strftime("%a"),
+        "first": str(four_d.get("first") or "").strip(),
+        "second": str(four_d.get("second") or "").strip(),
+        "third": str(four_d.get("third") or "").strip(),
+        "special": [str(value).strip() for value in (four_d.get("special") or []) if str(value).strip()],
+        "consolation": [str(value).strip() for value in (four_d.get("consolation") or []) if str(value).strip()],
+    }
+    if not all(re.fullmatch(r"\d{4}", card[key]) for key in ("first", "second", "third")):
+        raise ValueError("Huawei Nine Lotto top prizes are incomplete")
+    if not (10 <= len(card["special"]) <= 13) or any(not re.fullmatch(r"\d{4}", value) for value in card["special"]):
+        raise ValueError("Huawei Nine Lotto special prizes are incomplete")
+    if len(card["consolation"]) != 10 or any(not re.fullmatch(r"\d{4}", value) for value in card["consolation"]):
+        raise ValueError("Huawei Nine Lotto consolation prizes are incomplete")
+    return card
+
+
+def fetch_huawei_nine_lotto(mid, password):
+    credentials = {"mid": mid, "pw": password}
+    schedule = post_json(
+        HUAWEI_RESULTS_BASE + "/api/bet_server_get_draw_dates/en",
+        credentials,
+    )
+    status = schedule.get("status") or {}
+    if status.get("success") is not True:
+        raise ValueError("Huawei draw-date request was not successful")
+    now = datetime.now(timezone(timedelta(hours=8)))
+    candidates = []
+    for day in schedule.get("draw_results") or []:
+        if not isinstance(day, dict) or not isinstance(day.get("result_date"), str):
+            continue
+        try:
+            result_date = datetime.strptime(day["result_date"], "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        types = day.get("types") or []
+        if result_date <= now.date() and any(isinstance(item, dict) and item.get("type") == "N" for item in types):
+            candidates.append(day["result_date"])
+    if not candidates:
+        raise ValueError("Huawei has no completed Nine Lotto draw date")
+    draw_date = max(candidates)
+    payload = post_json(
+        HUAWEI_RESULTS_BASE + "/api/bet_server_get_results/en",
+        {"draw_date": draw_date, **credentials},
+    )
+    return _huawei_nine_lotto_card(payload, draw_date)
+
+
+def fetch_nine_lotto():
+    """Use Huawei as primary when configured and public boards as an accuracy gate."""
+    public = _public_nine_lotto()
+    mid = os.environ.get("HUAWEI_RESULTS_MID", "").strip()
+    password = os.environ.get("HUAWEI_RESULTS_PW", "")
+    if not mid or not password:
+        print("Huawei result credentials are not configured - using the dual-public-source gate", file=sys.stderr)
+        return public
+
+    official = fetch_huawei_nine_lotto(mid, password)
+    comparable = ("drawDate", "first", "second", "third", "special", "consolation")
+    differences = [key for key in comparable if official.get(key) != public.get(key)]
+    if differences:
+        raise ValueError("Huawei and public Nine Lotto results disagree on %s" % ", ".join(differences))
+    official["drawNo"] = public["drawNo"]
+    return official
+
+
 def lotto_in_progress(provider):
     """True while the Toto lotto games are still being drawn (some balls not out yet)."""
     for entry in (provider or {}).get("lotto") or []:
@@ -316,11 +515,27 @@ def main():
     data = parse(html)
 
     try:
+        with open(OUT, "r", encoding="utf-8") as f:
+            baseline = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        baseline = None
+
+    try:
         gd = fetch_grand_dragon()
         if gd:
             data["providers"]["gd4d"] = gd
     except Exception as e:
         print("Grand Dragon fetch failed (%s) - keeping the rest" % e, file=sys.stderr)
+
+    try:
+        data["providers"]["nine"] = fetch_nine_lotto()
+    except Exception as e:
+        previous_nine = ((baseline or {}).get("providers") or {}).get("nine")
+        if previous_nine:
+            data["providers"]["nine"] = previous_nine
+            print("Nine Lotto fetch/cross-check failed (%s) - keeping the last verified card" % e, file=sys.stderr)
+        else:
+            print("Nine Lotto fetch/cross-check failed (%s) - no card will be added" % e, file=sys.stderr)
 
     if len(data["providers"]) < 5:
         print("Only found %d providers - refusing to overwrite results.json"
@@ -333,12 +548,6 @@ def main():
         print("Invalid result snapshot (%s) - refusing to overwrite results.json"
               % error, file=sys.stderr)
         return 1
-
-    try:
-        with open(OUT, "r", encoding="utf-8") as f:
-            baseline = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        baseline = None
 
     if baseline is not None:
         if keep_complete_lotto(data, baseline):
