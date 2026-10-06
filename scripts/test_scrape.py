@@ -126,6 +126,43 @@ class ScrapeSnapshotTests(unittest.TestCase):
             scrape.validate_against_baseline(candidate, baseline)
 
 
+class GrandDragonDrawNumberTests(unittest.TestCase):
+    def card(self):
+        return {
+            "drawDate": "05-10-2026",
+            "first": "5726",
+            "second": "5746",
+            "third": "4080",
+        }
+
+    def archive_row(self, draw_no="3582/2026", first="5726"):
+        return '''
+        <table><tbody><tr>
+          <td><time datetime="2026-10-05">5 Oct 2026</time></td>
+          <td>%s</td>
+          <td class="recent-number">%s</td>
+          <td class="recent-number">5746</td>
+          <td class="recent-number">4080</td>
+          <td>Published</td>
+        </tr></tbody></table>
+        ''' % (draw_no, first)
+
+    def test_draw_number_requires_matching_date_and_top_prizes(self):
+        self.assertEqual("3582/2026", scrape._grand_dragon_draw_no(self.archive_row(), self.card()))
+
+    def test_disagreement_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "disagrees on top prizes"):
+            scrape._grand_dragon_draw_no(self.archive_row(first="0000"), self.card())
+
+    def test_invalid_draw_number_fails_closed(self):
+        with self.assertRaisesRegex(ValueError, "invalid draw number"):
+            scrape._grand_dragon_draw_no(self.archive_row(draw_no="unknown"), self.card())
+
+    def test_missing_matching_date_returns_none(self):
+        html = self.archive_row().replace("2026-10-05", "2026-10-04")
+        self.assertIsNone(scrape._grand_dragon_draw_no(html, self.card()))
+
+
 class LottoInProgressTests(unittest.TestCase):
     def toto(self, balls, draw_date="30-09-2026", draw_day="Wed"):
         return {

@@ -17,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 
 SOURCE = "https://4d4d.co/"
 GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
+GD_DRAW_ARCHIVE = "https://tiok4d.com/results/grand-dragon-4d/{year}/{month}"
 NINE_SOURCE = "https://4dgm.com/?view=home"
 NINE_CROSSCHECK_SOURCE = "https://lotto09.com/"
 HUAWEI_RESULTS_BASE = os.environ.get("HUAWEI_RESULTS_BASE", "https://api.huawei88.org").rstrip("/")
@@ -285,6 +286,24 @@ def validate_against_baseline(candidate, baseline):
             )
 
 
+def _grand_dragon_draw_no(html, card):
+    """Return a corroborated Grand Dragon draw number from a month archive."""
+    draw_date = datetime.strptime(card["drawDate"], DRAW_DATE_FORMAT).strftime("%Y-%m-%d")
+    for row in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S | re.I):
+        date_match = re.search(r'<time[^>]+datetime=["\']([^"\']+)', row, re.I)
+        numbers = [clean(value) for value in re.findall(r'class=["\'][^"\']*recent-number[^"\']*["\'][^>]*>(.*?)</td>', row, re.S | re.I)]
+        cells_in_row = [clean(value) for value in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S | re.I)]
+        if not date_match or date_match.group(1) != draw_date or len(numbers) < 3 or len(cells_in_row) < 2:
+            continue
+        if numbers[:3] != [card["first"], card["second"], card["third"]]:
+            raise ValueError("Grand Dragon draw-number source disagrees on top prizes")
+        draw_no = cells_in_row[1]
+        if re.fullmatch(r"\d{1,6}/\d{4}", draw_no) is None:
+            raise ValueError("Grand Dragon draw-number source has an invalid draw number")
+        return draw_no
+    return None
+
+
 def fetch_grand_dragon():
     """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
     raw = json.loads(fetch(GD_SOURCE))
@@ -303,6 +322,19 @@ def fetch_grand_dragon():
     # centre the last three, same as the source site shows them
     card["special"] = sp[:10] + [""] + sp[10:13] + [""]
     card["consolation"] = [g.get("C%d" % i, "") for i in range(1, 11)]
+    if card.get("drawDate"):
+        day, month, year = card["drawDate"].split("-")
+        try:
+            archive = fetch(GD_DRAW_ARCHIVE.format(year=year, month=month))
+            draw_no = _grand_dragon_draw_no(archive, card)
+            if draw_no:
+                card["drawNo"] = draw_no
+            else:
+                print("Grand Dragon draw number unavailable for %s" % card["drawDate"], file=sys.stderr)
+        except Exception as exc:
+            # The draw number is supporting metadata. Never discard a complete
+            # verified result card merely because the archive is unavailable.
+            print("Grand Dragon draw-number lookup failed (%s)" % exc, file=sys.stderr)
     return card
 
 
