@@ -23,7 +23,17 @@ const MAP = {
 const digits = (v) => String(v ?? '').replace(/\D/g, '');
 
 async function sourceNumbers() {
-  const get = async (f) => (await fetch(SOURCE + f + '.json', { headers: { 'User-Agent': 'Mozilla/5.0 (health-check)' } })).json();
+  const get = async (f) => {
+    const url = new URL(SOURCE + f + '.json');
+    url.searchParams.set('_my4d_check', crypto.randomUUID());
+    const response = await fetch(url, {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(30_000),
+      headers: { 'User-Agent': 'Mozilla/5.0 (health-check)', 'Cache-Control': 'no-cache, no-store, max-age=0', Pragma: 'no-cache' },
+    });
+    if (!response.ok) throw new Error(`Source check HTTP ${response.status}`);
+    return response.json();
+  };
   const feeds = { west: await get('feedwest'), east: await get('feedeast'), sg: await get('feedsg') };
   const out = {};
   for (const [card, [region, section, field]] of Object.entries(MAP)) {

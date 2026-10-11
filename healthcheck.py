@@ -18,6 +18,7 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone, timedelta
+from results_http import fresh_request
 
 RELAY = "https://livefeed.angelina-bcb88.workers.dev/"
 SOURCE = "https://www.4dmoon.com/feedwest.json"
@@ -34,7 +35,7 @@ problems = []
 
 
 def fetch(url, timeout=30):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (health-check)"})
+    req = fresh_request(url, "Mozilla/5.0 (health-check)")
     return urllib.request.urlopen(req, timeout=timeout).read().decode("utf-8", "replace")
 
 

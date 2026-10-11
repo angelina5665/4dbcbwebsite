@@ -198,19 +198,18 @@ class SupportingPageTests(unittest.TestCase):
 
     def test_workflow_allowlist_covers_exact_generated_files(self) -> None:
         workflow = (REPO / ".github" / "workflows" / "update-results.yml").read_text(encoding="utf-8")
-        generated_match = re.search(r"generated=\(([^)]+)\)", workflow)
-        expected_match = re.search(r"expected='([^']+)'", workflow)
-        self.assertIsNotNone(generated_match)
-        self.assertIsNotNone(expected_match)
-
-        generated = generated_match.group(1).split()
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("release_results", REPO / "scripts" / "release_results.py")
+        release = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(release)
+        self.assertIn("python scripts/release_results.py --publish", workflow)
+        generated = release.GENERATED
         expected_generated = ["results.json", "index.html", "sitemap.xml", *supporting.TARGET_PATHS]
         self.assertEqual(generated, expected_generated)
-        allowlist = re.compile(expected_match.group(1))
         for relative_path in expected_generated:
-            self.assertIsNotNone(allowlist.fullmatch(relative_path), relative_path)
+            self.assertIn(relative_path, generated)
         for unexpected in ("about.html", "assets/site.css", "results/2026-08-31/index.html"):
-            self.assertIsNone(allowlist.fullmatch(unexpected), unexpected)
+            self.assertNotIn(unexpected, generated)
 
 
 if __name__ == "__main__":

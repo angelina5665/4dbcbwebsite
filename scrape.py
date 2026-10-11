@@ -14,6 +14,7 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone, timedelta
+from results_http import fresh_request
 
 SOURCE = "https://4d4d.co/"
 GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
@@ -47,7 +48,7 @@ DRAW_DATE_FORMAT = "%d-%m-%Y"
 
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; 4dvip-results/1.0)"})
+    req = fresh_request(url, "Mozilla/5.0 (compatible; 4dvip-results/1.0)")
     with urllib.request.urlopen(req, timeout=30) as r:
         return r.read().decode("utf-8", "replace")
 

@@ -2,9 +2,10 @@ name: Update 4D results
 
 on:
   schedule:
-    # Prime release window: 6:57pm, then every 5 minutes from 7:02pm-10:57pm MYT.
+    # Start at 6:47pm and 6:57pm; catch-up ticks every five minutes.
+    # Each active job polls for up to 20 minutes rather than relying on every tick.
     # West Malaysia draws normally release from 7pm; regional operators can vary.
-    - cron: "57 10 * * *"
+    - cron: "47,57 10 * * *"
     - cron: "2-57/5 11-14 * * *"
     # Off-boundary hourly catch-up outside the prime window, including special draws.
     - cron: "17 0-10,15-23 * * *"
@@ -20,6 +21,7 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -27,45 +29,20 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Fetch the latest results
+      - name: Poll and publish verified results
         env:
           HUAWEI_RESULTS_BASE: https://api.huawei88.org
           HUAWEI_RESULTS_MID: ${{ secrets.HUAWEI_RESULTS_MID }}
           HUAWEI_RESULTS_PW: ${{ secrets.HUAWEI_RESULTS_PW }}
-        run: python scrape.py
+          GIT_TERMINAL_PROMPT: "0"
+          GCM_INTERACTIVE: never
+        run: python scripts/release_results.py --publish
 
-      - name: Prerender homepage results
-        run: node scripts/prerender-home.mjs
-
-      - name: Prerender crawlable supporting pages
-        run: python scripts/prerender_supporting_pages.py
-
-      - name: Validate generated pages
-        run: |
-          node scripts/prerender-home.mjs --check
-          node --test scripts/*.test.mjs
-          python scripts/prerender_supporting_pages.py --check
-          python -m unittest discover -s scripts -p 'test_*.py' -v
-
-      - name: Publish if anything changed
-        run: |
-          expected='^(index\.html|results\.json|sitemap\.xml|(magnum-4d-results|sports-toto-4d-results|da-ma-cai-results|sabah-88-4d-results|special-cash-sweep-results|sandakan-stc-4d-results|west-malaysia-4d-results|east-malaysia-4d-results)/index\.html|ms/index\.html)$'
-          unexpected="$(git diff --name-only | grep -Ev "$expected" || true)"
-          unexpected_untracked="$(git ls-files --others --exclude-standard)"
-          if [ -n "$unexpected" ] || [ -n "$unexpected_untracked" ]; then
-            echo "Unexpected generated files:"
-            echo "$unexpected"
-            echo "$unexpected_untracked"
-            exit 1
-          fi
-          generated=(results.json index.html sitemap.xml magnum-4d-results/index.html sports-toto-4d-results/index.html da-ma-cai-results/index.html sabah-88-4d-results/index.html special-cash-sweep-results/index.html sandakan-stc-4d-results/index.html west-malaysia-4d-results/index.html east-malaysia-4d-results/index.html ms/index.html)
-          if git diff --quiet -- "${generated[@]}"; then
-            echo "No change in results - nothing to publish."
-            exit 0
-          fi
-          git -c core.whitespace=cr-at-eol diff --check
-          git config user.name "4D VIP results bot"
-          git config user.email "actions@github.com"
-          git add -- "${generated[@]}"
-          git commit -m "Update results $(date -u '+%Y-%m-%d %H:%M UTC')"
-          git push
+      - name: Preserve dated generated-file backups on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: my4d-result-backups-${{ github.run_id }}
+          path: ${{ runner.temp }}/my4d-result-backups/
+          if-no-files-found: ignore
+          retention-days: 3
