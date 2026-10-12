@@ -47,7 +47,9 @@ def run(*args, capture=False):
 
 
 def git(*args, capture=False):
-    return run("git", "-c", "http.sslBackend=openssl", *args, capture=capture)
+    # http.sslBackend is a Windows-only switch; Linux git (the Actions robot) aborts every fetch/push with it.
+    ssl = ("-c", "http.sslBackend=openssl") if os.name == "nt" else ()
+    return run("git", *ssl, *args, capture=capture)
 
 
 def assert_clean():

@@ -146,3 +146,12 @@ class ReleaseTests(unittest.TestCase):
             release.main()
             cycle.assert_called_once()
             sleep.assert_not_called()
+
+
+class GitPortabilityTests(unittest.TestCase):
+    # Regression: 11 Oct 2026 the robot failed every run with "Unsupported SSL backend 'openssl'"
+    # because the Windows-only http.sslBackend switch was passed to Linux git.
+    def test_linux_git_gets_no_windows_ssl_switch(self):
+        with mock.patch.object(release.os, "name", "posix"), mock.patch.object(release, "run") as run:
+            release.git("fetch", "origin", "main")
+        self.assertEqual(("git", "fetch", "origin", "main"), run.call_args.args)
