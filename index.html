@@ -259,6 +259,7 @@ html[data-theme="dark"] .dictionary-cta-note{color:#bbb}
   <div class="topslider" id="topslider">
     <span class="ts-tag">Ad</span>
     <div class="ts-track">
+    <a class="ts-slide" data-first-banner href="http://laicibet.net/RFA5635588A" target="_blank" rel="noopener sponsored"><picture><source media="(max-width:767px)" srcset="laicibet-mobile.png?v=1"><img src="laicibet-wide.png?v=1" alt="LaiciBet — Kenali LaiciBet. Layari sekarang."></picture></a>
     <a class="ts-slide" href="https://bcb88j.com/RFAA8723385" target="_blank" rel="noopener sponsored"><picture><source media="(max-width:767px)" srcset="banner-mobile.jpg?v=4"><img src="banner.jpg?v=4" alt="BCB88 — Hot games, big rewards. Main sekarang."></picture></a>
     <a class="ts-slide" href="https://2bvbx.com/RFMY4D.BVBX" target="_blank" rel="noopener sponsored"><picture><source media="(max-width:767px)" srcset="bvbx-mobile.jpg?v=2"><img src="bvbx-wide.jpg?v=2" alt="BVBX — 4D payout promotion and free RM30 slot game credit."></picture></a>
     <a class="ts-slide" href="https://v12luck.com/RFMY4D.V12" target="_blank" rel="noopener sponsored"><picture><source media="(max-width:767px)" srcset="v12-mobile.jpg?v=3"><img src="v12-wide.jpg?v=3" alt="V12BET — 4D payout promotion and free RM30 slot game credit."></picture></a>
@@ -274,15 +275,17 @@ html[data-theme="dark"] .dictionary-cta-note{color:#bbb}
   var box = document.getElementById("topslider");
   if (!box) return;
   var track = box.querySelector(".ts-track");
-  // Shuffle whole slides once per page load, preserving each image/link pair.
+  // Keep the featured partner first; shuffle the remaining whole slides.
   var slides = Array.prototype.slice.call(track.children);
+  var firstSlides = slides.filter(function(slide){ return slide.hasAttribute("data-first-banner"); });
+  slides = slides.filter(function(slide){ return !slide.hasAttribute("data-first-banner"); });
   for (var shuffleIndex = slides.length - 1; shuffleIndex > 0; shuffleIndex--) {
     var randomIndex = Math.floor(Math.random() * (shuffleIndex + 1));
     var slide = slides[shuffleIndex];
     slides[shuffleIndex] = slides[randomIndex];
     slides[randomIndex] = slide;
   }
-  slides.forEach(function(slide){ track.appendChild(slide); });
+  firstSlides.concat(slides).forEach(function(slide){ track.appendChild(slide); });
   var n = track.children.length;
   var dots = box.querySelector(".ts-dots");
   var i = 0, timer = null, paused = false;
