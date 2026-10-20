@@ -13,8 +13,8 @@ test('homepage contains five disclosed banner slides and excludes TTBET', () => 
   assert.equal(slides.length, 5);
   assert.ok(slides[0].includes('data-first-banner') && slides[0].includes('http://laicibet.net/RFA5635588A'));
   assert.ok(slides.some((slide) => slide.includes('http://laicibet.net/RFA5635588A')));
-  assert.match(html, /srcset="laicibet-mobile\.png\?v=1"/);
-  assert.match(html, /src="laicibet-wide\.png\?v=1"/);
+  assert.match(html, /srcset="laicibet-mobile-v2\.png"/);
+  assert.match(html, /src="laicibet-wide-v2\.png"/);
   assert.ok(slides.some((slide) => /bcb88j\.com\/RFAA8723385/.test(slide)));
   assert.doesNotMatch(html, /ttbet|RFAA9570A03/i);
   assert.ok(slides.every((slide) => slide.includes('rel="noopener sponsored"')));

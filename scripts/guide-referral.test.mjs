@@ -8,7 +8,8 @@ const links = [
   'https://bcb88j.com/RFAA8723385',
   'https://2bvbx.com/RFMY4D.BVBX',
   'https://v12luck.com/RFMY4D.V12',
-  'https://3x44my.com/RFMY4D.X44'
+  'https://3x44my.com/RFMY4D.X44',
+  'http://laicibet.net/RFA5635588A'
 ];
 
 function loadPage(randomValues) {
@@ -59,7 +60,7 @@ test('every eligible click gets a fresh independent chance', () => {
   const page = loadPage([0.7, 0.1, 0.99]);
   assert.equal(page.click(), false);
   assert.equal(page.click(), true);
-  assert.deepEqual(page.redirects, [links[3]]);
+  assert.deepEqual(page.redirects, [links[4]]);
 });
 
 test('modified, cancelled, middle, and untrusted clicks never redirect', () => {
@@ -73,7 +74,7 @@ test('both page surfaces disclose and mark the 50% referral behavior', () => {
     const html = readFileSync(new URL(path, import.meta.url), 'utf8');
     assert.equal((html.match(/data-guide-referral(?=\s|>)/g) ?? []).length, 2);
     assert.match(html, /data-guide-referral-notice/);
-    assert.match(html, /guide-referral\.js\?v=20261003r1/);
+    assert.match(html, /guide-referral\.js\?v=20261021r1/);
   }
 });
 

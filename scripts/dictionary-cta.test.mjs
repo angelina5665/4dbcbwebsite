@@ -5,7 +5,7 @@ import vm from 'node:vm';
 
 const source = readFileSync(new URL('../assets/site-locale.js', import.meta.url), 'utf8');
 
-function loadCta(chance) {
+function loadCta(chance, sponsorChoice = 0) {
   let ready;
   let handler;
   const redirects = [];
@@ -18,7 +18,8 @@ function loadCta(chance) {
     querySelectorAll(selector) { return selector === '[data-dictionary-cta]' ? [cta] : []; },
   };
   const math = Object.create(Math);
-  math.random = () => chance;
+  const randomValues = [chance, sponsorChoice];
+  math.random = () => randomValues.shift() ?? chance;
   vm.runInNewContext(source, {
     document,
     window: { location: { assign(url) { redirects.push(url); } }, open() {} },
@@ -50,6 +51,15 @@ test('Dictionary CTA follows its normal dictionary href at and above the thresho
   const page = loadCta(0.60);
   assert.equal(page.click(), false);
   assert.deepEqual(page.redirects, []);
+});
+
+test('Dictionary CTA can select each of the five partners, including Laicibet', () => {
+  const links = ['https://bcb88j.com/RFAA8723385', 'https://2bvbx.com/RFMY4D.BVBX', 'https://v12luck.com/RFMY4D.V12', 'https://3x44my.com/RFMY4D.X44', 'http://laicibet.net/RFA5635588A'];
+  links.forEach((link, index) => {
+    const page = loadCta(0, (index + 0.5) / links.length);
+    assert.equal(page.click(), true);
+    assert.deepEqual(page.redirects, [link]);
+  });
 });
 
 test('modified and untrusted Dictionary CTA clicks are never redirected', () => {
