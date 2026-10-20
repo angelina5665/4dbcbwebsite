@@ -274,6 +274,15 @@ html[data-theme="dark"] .dictionary-cta-note{color:#bbb}
   var box = document.getElementById("topslider");
   if (!box) return;
   var track = box.querySelector(".ts-track");
+  // Shuffle whole slides once per page load, preserving each image/link pair.
+  var slides = Array.prototype.slice.call(track.children);
+  for (var shuffleIndex = slides.length - 1; shuffleIndex > 0; shuffleIndex--) {
+    var randomIndex = Math.floor(Math.random() * (shuffleIndex + 1));
+    var slide = slides[shuffleIndex];
+    slides[shuffleIndex] = slides[randomIndex];
+    slides[randomIndex] = slide;
+  }
+  slides.forEach(function(slide){ track.appendChild(slide); });
   var n = track.children.length;
   var dots = box.querySelector(".ts-dots");
   var i = 0, timer = null, paused = false;
