@@ -13,6 +13,7 @@ which emails the owner automatically.
 """
 
 import json
+import os
 import re
 import sys
 import urllib.error
@@ -118,8 +119,14 @@ try:
             problems.append("%s lost its %s (page was overwritten?)" % (SITE, label))
     if re.search(r'<link rel="canonical" href="https?://(?:www\.)?4dvip88\.com/', html):
         problems.append("%s canonical reverted to the previous domain" % SITE)
-    if html.count('class="ts-slide"') != 4:
-        problems.append("%s no longer has exactly four banner slides" % SITE)
+    # compare with the banners saved in the repo, so adding or removing a banner on purpose
+    # never raises a false alarm, but a page overwritten with an old copy still does
+    saved = os.path.join(os.path.dirname(os.path.abspath(__file__)), "index.html")
+    expected = set(re.findall(r'<a class="ts-slide"[^>]*href="([^"]+)"', open(saved, encoding="utf-8").read()))
+    live = set(re.findall(r'<a class="ts-slide"[^>]*href="([^"]+)"', html))
+    if expected != live:
+        problems.append("%s banner slides differ from the saved site (missing: %s; unexpected: %s)"
+                        % (SITE, ", ".join(sorted(expected - live)) or "none", ", ".join(sorted(live - expected)) or "none"))
 except Exception as e:
     problems.append("%s unreachable: %s" % (SITE, e))
 
