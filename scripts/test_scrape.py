@@ -163,6 +163,58 @@ class GrandDragonDrawNumberTests(unittest.TestCase):
         self.assertIsNone(scrape._grand_dragon_draw_no(html, self.card()))
 
 
+class DaMaCai13DBonusTests(unittest.TestCase):
+    def card(self):
+        return {
+            "drawDate": "01-11-2026", "drawDay": "Sun", "drawNo": "6154-26",
+            "first": "464 863", "second": "740 700", "third": "925 201",
+            "special": ["233 624", "014 209", "457 907", "153 821", "658 827",
+                        "355 526", "550 283", "866 100", "862 680", "130 155"],
+            "consolation": ["658 120", "004 549", "042 482", "614 869", "653 951",
+                            "498 779", "816 948", "383 657", "760 776", "382 185"],
+            "d3rows": [
+                {"value": "464 863", "zodiac": "ROOSTER", "bonus": ""},
+                {"value": "740 700", "zodiac": "MONKEY", "bonus": ""},
+                {"value": "925 201", "zodiac": "DOG", "bonus": ""},
+            ],
+        }
+
+    def moon(self):
+        values = {
+            "DD": "(Sun) 01-Nov-2026", "DN": "#6154/26",
+            "P1": "464863", "P2": "740700", "P3": "925201",
+            "PB1": "ROOSTER", "PB2": "MONKEY", "PB3": "DOG",
+            "JP1": "RM 848,333.30", "JP2": "RM 1,241,762.10", "JP3": "RM 2,163,339",
+        }
+        for index, value in enumerate(("233624", "014209", "457907", "153821", "658827",
+                                       "355526", "550283", "866100", "862680", "130155"), 1):
+            values["S%d" % index] = value
+        for index, value in enumerate(("658120", "004549", "042482", "614869", "653951",
+                                       "498779", "816948", "383657", "760776", "382185"), 1):
+            values["C%d" % index] = value
+        return {"D6": values}
+
+    def test_missing_primary_bonus_is_filled_after_full_agreement(self):
+        card = self.card()
+        scrape.enrich_damacai13d_from_moon(card, self.moon())
+        self.assertEqual(
+            ["RM 848,333.30", "RM 1,241,762.10", "RM 2,163,339.00"],
+            [row["bonus"] for row in card["d3rows"]],
+        )
+
+    def test_shared_result_disagreement_fails_closed(self):
+        moon = self.moon()
+        moon["D6"]["P1"] = "000000"
+        with self.assertRaisesRegex(ValueError, "disagrees on first"):
+            scrape.enrich_damacai13d_from_moon(self.card(), moon)
+
+    def test_invalid_bonus_amount_fails_closed(self):
+        moon = self.moon()
+        moon["D6"]["JP2"] = "pending"
+        with self.assertRaisesRegex(ValueError, "invalid amount"):
+            scrape.enrich_damacai13d_from_moon(self.card(), moon)
+
+
 class LottoInProgressTests(unittest.TestCase):
     def toto(self, balls, draw_date="30-09-2026", draw_day="Wed"):
         return {

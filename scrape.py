@@ -14,6 +14,7 @@ import re
 import sys
 import urllib.request
 from datetime import datetime, timezone, timedelta
+from decimal import Decimal, InvalidOperation
 from results_http import fresh_request
 
 SOURCE = "https://4d4d.co/"
@@ -305,9 +306,9 @@ def _grand_dragon_draw_no(html, card):
     return None
 
 
-def fetch_grand_dragon():
+def fetch_grand_dragon(raw=None):
     """Grand Dragon 4D comes from 4dmoon.com's json feed (key "G")."""
-    raw = json.loads(fetch(GD_SOURCE))
+    raw = raw if raw is not None else json.loads(fetch(GD_SOURCE))
     g = raw.get("G")
     if not g or not g.get("P1"):
         return None
@@ -336,6 +337,63 @@ def fetch_grand_dragon():
             # The draw number is supporting metadata. Never discard a complete
             # verified result card merely because the archive is unavailable.
             print("Grand Dragon draw-number lookup failed (%s)" % exc, file=sys.stderr)
+    return card
+
+
+def _normalise_amount(value):
+    """Return one stable MY4D currency string without inventing a value."""
+    match = re.fullmatch(r"\s*(?:RM\s*)?([0-9][0-9,]*(?:\.[0-9]{1,2})?)\s*", str(value or ""), re.I)
+    if not match:
+        raise ValueError("Da Ma Cai 1+3D bonus source has an invalid amount")
+    try:
+        amount = Decimal(match.group(1).replace(",", ""))
+    except InvalidOperation as error:
+        raise ValueError("Da Ma Cai 1+3D bonus source has an invalid amount") from error
+    return "RM %s" % format(amount.quantize(Decimal("0.01")), ",.2f")
+
+
+def enrich_damacai13d_from_moon(card, raw):
+    """Fill missing 1+3D bonus amounts only after a complete source agreement.
+
+    4d4d currently publishes the winning numbers and zodiac labels but no longer
+    exposes the three jackpot amounts. 4dmoon's D6 feed carries those amounts.
+    Every shared draw fact must agree before its values are accepted.
+    """
+    source = (raw or {}).get("D6")
+    if not isinstance(card, dict) or not isinstance(source, dict):
+        raise ValueError("Da Ma Cai 1+3D cross-check is unavailable")
+
+    date_match = re.fullmatch(r"\((\w{3})\)\s*(\d{2})-(\w{3})-(\d{4})", str(source.get("DD", "")))
+    months = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+              "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
+    if not date_match or date_match.group(3) not in months:
+        raise ValueError("Da Ma Cai 1+3D cross-check has an invalid draw date")
+    source_date = "%s-%s-%s" % (date_match.group(2), months[date_match.group(3)], date_match.group(4))
+    if source_date != card.get("drawDate") or date_match.group(1) != card.get("drawDay"):
+        raise ValueError("Da Ma Cai 1+3D cross-check disagrees on draw date")
+    if re.sub(r"\D", "", str(source.get("DN", ""))) != re.sub(r"\D", "", str(card.get("drawNo", ""))):
+        raise ValueError("Da Ma Cai 1+3D cross-check disagrees on draw number")
+
+    def compact(value):
+        return re.sub(r"\s", "", str(value or ""))
+
+    for index, field in enumerate(("first", "second", "third"), 1):
+        if compact(card.get(field)) != compact(source.get("P%d" % index)):
+            raise ValueError("Da Ma Cai 1+3D cross-check disagrees on %s" % field)
+
+    for field, prefix, count in (("special", "S", 10), ("consolation", "C", 10)):
+        current = [compact(value) for value in card.get(field, []) if compact(value)]
+        expected = [compact(source.get("%s%d" % (prefix, index))) for index in range(1, count + 1)]
+        if current != expected or any(not re.fullmatch(r"\d{6}", value) for value in expected):
+            raise ValueError("Da Ma Cai 1+3D cross-check disagrees on %s" % field)
+
+    rows = card.get("d3rows")
+    if not isinstance(rows, list) or len(rows) != 3:
+        raise ValueError("Da Ma Cai 1+3D cross-check has incomplete rows")
+    for index, row in enumerate(rows, 1):
+        if row.get("zodiac") != source.get("PB%d" % index):
+            raise ValueError("Da Ma Cai 1+3D cross-check disagrees on zodiac %d" % index)
+        row["bonus"] = _normalise_amount(source.get("JP%d" % index))
     return card
 
 
@@ -553,8 +611,12 @@ def main():
     except (FileNotFoundError, json.JSONDecodeError):
         baseline = None
 
+    moon = None
     try:
-        gd = fetch_grand_dragon()
+        moon = json.loads(fetch(GD_SOURCE))
+        if "damacai13d" in data["providers"]:
+            enrich_damacai13d_from_moon(data["providers"]["damacai13d"], moon)
+        gd = fetch_grand_dragon(moon)
         if gd:
             data["providers"]["gd4d"] = gd
     except Exception as e:
