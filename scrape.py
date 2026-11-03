@@ -22,6 +22,10 @@ GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
 GD_DRAW_ARCHIVE = "https://4dmalaya.com/en/dragon-4d/"
 NINE_SOURCE = "https://4dgm.com/?view=home"
 NINE_CROSSCHECK_SOURCE = "https://lotto09.com/"
+NINE_FALLBACK_SOURCES = {
+    "lotto4dlive": "https://lotto4dlive.com/",
+    "starbucks4d": "https://starbucks4d.com/4d-result/9lotto/",
+}
 HUAWEI_RESULTS_BASE = os.environ.get("HUAWEI_RESULTS_BASE", "https://api.huawei88.org").rstrip("/")
 OUT = "results.json"
 
@@ -480,6 +484,64 @@ def _nine_lotto_card(html, source):
             "special": special,
             "consolation": consolation,
         }
+    elif source == "lotto4dlive":
+        match = re.search(
+            r'<div class="result-card" data-group="nine"(.*?)(?=<div class="result-card" data-group=)',
+            html,
+            re.S | re.I,
+        )
+        if not match:
+            raise ValueError("lotto4dlive has no Nine Lotto card")
+        block = match.group(1)
+        meta = re.search(
+            r'(\d{2})\s+(\w{3})\s+(\d{4})\s+\((\w{3})\).*?Draw\s+([0-9]+/[0-9]{4})',
+            block,
+            re.S | re.I,
+        )
+        months = {"Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04", "May": "05", "Jun": "06",
+                  "Jul": "07", "Aug": "08", "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"}
+        prizes = re.findall(r'class="prize-number"[^>]*>\s*([0-9]{4})\s*</a>', block, re.I)
+        special_block = re.search(r'number-group__label">Special.*?</div>(.*?)(?=number-group__label">Consolation)', block, re.S | re.I)
+        consolation_block = re.search(r'number-group__label">Consolation.*?</div>(.*?)(?=result-card__more)', block, re.S | re.I)
+
+        def chip_numbers(section):
+            return re.findall(r'class="chip"[^>]*>\s*([0-9]{4})\s*</a>', section.group(1), re.I) if section else []
+        if not meta or meta.group(2).title() not in months or len(prizes) < 3:
+            raise ValueError("lotto4dlive Nine Lotto card is incomplete")
+        card = {
+            "name": "Nine Lotto 4D",
+            "drawDate": "%s-%s-%s" % (meta.group(1), months[meta.group(2).title()], meta.group(3)),
+            "drawDay": meta.group(4).title(),
+            "drawNo": meta.group(5),
+            "first": prizes[0], "second": prizes[1], "third": prizes[2],
+            "special": chip_numbers(special_block),
+            "consolation": chip_numbers(consolation_block),
+        }
+    elif source == "starbucks4d":
+        date_match = re.search(r'<link rel="canonical" href="https://starbucks4d\.com/4d-result/9lotto/(\d{4})-(\d{2})-(\d{2})/"', html, re.I)
+        block_match = re.search(r'<article class="board".*?</article>', html, re.S | re.I)
+        if not date_match or not block_match:
+            raise ValueError("starbucks4d has no Nine Lotto card")
+        block = block_match.group(0)
+        meta = re.search(r'\((\w{3})\)\s*\d{2}/\d{2}/\d{4}\s*(?:·|&middot;)\s*#([0-9]+)', block)
+        prizes = re.findall(r'<strong class="num" data-n="([0-9]{4})"', block, re.I)
+        special_match = re.search(r'<div class="bandh">Special</div><div class="grid5">(.*?)</div>', block, re.S | re.I)
+        consolation_match = re.search(r'<div class="bandh">Consolation</div><div class="grid5">(.*?)</div>', block, re.S | re.I)
+
+        def data_numbers(section):
+            return re.findall(r'data-n="([0-9]{4})"', section.group(1), re.I) if section else []
+
+        if not meta or len(prizes) < 3:
+            raise ValueError("starbucks4d Nine Lotto card is incomplete")
+        card = {
+            "name": "Nine Lotto 4D",
+            "drawDate": "%s-%s-%s" % (date_match.group(3), date_match.group(2), date_match.group(1)),
+            "drawDay": meta.group(1).title(),
+            "drawNo": "%s/%s" % (meta.group(2), date_match.group(1)),
+            "first": prizes[0], "second": prizes[1], "third": prizes[2],
+            "special": data_numbers(special_match),
+            "consolation": data_numbers(consolation_match),
+        }
     else:
         raise ValueError("unsupported Nine Lotto source")
 
@@ -494,7 +556,7 @@ def _nine_lotto_card(html, source):
 
 
 def _public_nine_lotto():
-    """Require two independent public boards to agree on Nine Lotto."""
+    """Require agreement, escalating to three-source consensus if one board is stale."""
     primary = _nine_lotto_card(fetch(NINE_SOURCE), "4dgm")
     crosscheck = _nine_lotto_card(fetch(NINE_CROSSCHECK_SOURCE), "lotto09")
     # Publishers centre the 13-slot Special board differently, so compare its
@@ -505,10 +567,43 @@ def _public_nine_lotto():
     differences = [key for key in comparable if primary.get(key) != crosscheck.get(key)]
     if primary_special != crosscheck_special:
         differences.append("special")
-    if differences:
-        raise ValueError("Nine Lotto sources disagree on %s" % ", ".join(differences))
-    primary["special"] = primary_special
-    return primary
+    if not differences:
+        primary["special"] = primary_special
+        return primary
+
+    candidates = {"lotto09": crosscheck}
+    failures = []
+    newest_public_date = max(
+        datetime.strptime(primary["drawDate"], DRAW_DATE_FORMAT),
+        datetime.strptime(crosscheck["drawDate"], DRAW_DATE_FORMAT),
+    ).strftime("%Y-%m-%d")
+    for source, url in NINE_FALLBACK_SOURCES.items():
+        try:
+            if source == "starbucks4d":
+                url = url.rstrip("/") + "/" + newest_public_date + "/"
+            candidates[source] = _nine_lotto_card(fetch(url), source)
+        except Exception as error:
+            failures.append("%s: %s" % (source, error))
+
+    def facts(card):
+        return (
+            card.get("drawDate"), card.get("drawDay"), card.get("drawNo"),
+            card.get("first"), card.get("second"), card.get("third"),
+            tuple(value for value in card.get("special", []) if re.fullmatch(r"\d{4}", value or "")),
+            tuple(card.get("consolation", [])),
+        )
+
+    groups = {}
+    for source, card in candidates.items():
+        groups.setdefault(facts(card), []).append(source)
+    agreed = [(signature, sources) for signature, sources in groups.items() if len(sources) >= 3]
+    if len(agreed) != 1:
+        detail = "; fallback failures: " + "; ".join(failures) if failures else ""
+        raise ValueError("Nine Lotto sources disagree on %s%s" % (", ".join(differences), detail))
+    signature, sources = agreed[0]
+    selected = candidates[sources[0]]
+    selected["special"] = list(signature[6])
+    return selected
 
 
 def _huawei_nine_lotto_card(payload, draw_date):
@@ -581,7 +676,7 @@ def fetch_nine_lotto():
     mid = os.environ.get("HUAWEI_RESULTS_MID", "").strip()
     password = os.environ.get("HUAWEI_RESULTS_PW", "")
     if not mid or not password:
-        print("Huawei result credentials are not configured - using the dual-public-source gate", file=sys.stderr)
+        print("Huawei result credentials are not configured - using the multi-public-source agreement gate", file=sys.stderr)
         return public
 
     official = fetch_huawei_nine_lotto(mid, password)

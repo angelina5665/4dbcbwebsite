@@ -325,6 +325,31 @@ class NineLottoApiTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "disagree on first"):
                 scrape.fetch_nine_lotto()
 
+    def test_three_source_consensus_overrides_one_stale_board(self):
+        stale = self.public_result()
+        current = copy.deepcopy(stale)
+        current.update({"drawDate": "03-11-2026", "drawDay": "Tue", "drawNo": "1539/2026", "first": "8079"})
+        parsed = {"4dgm": stale, "lotto09": current, "lotto4dlive": current, "starbucks4d": current}
+        with mock.patch.object(scrape, "fetch", side_effect=lambda url: url), \
+             mock.patch.object(scrape, "_nine_lotto_card", side_effect=lambda html, source: copy.deepcopy(parsed[source])):
+            card = scrape._public_nine_lotto()
+        self.assertEqual("03-11-2026", card["drawDate"])
+        self.assertEqual("8079", card["first"])
+
+    def test_two_source_fallback_is_not_enough(self):
+        stale = self.public_result()
+        current = copy.deepcopy(stale)
+        current.update({"drawDate": "03-11-2026", "drawDay": "Tue", "drawNo": "1539/2026", "first": "8079"})
+        parsed = {"4dgm": stale, "lotto09": current, "lotto4dlive": current}
+        def fake_fetch(url):
+            if url == scrape.NINE_FALLBACK_SOURCES["starbucks4d"]:
+                raise OSError("unavailable")
+            return url
+        with mock.patch.object(scrape, "fetch", side_effect=fake_fetch), \
+             mock.patch.object(scrape, "_nine_lotto_card", side_effect=lambda html, source: copy.deepcopy(parsed[source])):
+            with self.assertRaisesRegex(ValueError, "sources disagree"):
+                scrape._public_nine_lotto()
+
 
 if __name__ == "__main__":
     unittest.main()
