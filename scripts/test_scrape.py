@@ -162,6 +162,16 @@ class GrandDragonDrawNumberTests(unittest.TestCase):
         html = self.archive_row().replace("2026-10-05", "2026-10-04")
         self.assertIsNone(scrape._grand_dragon_draw_no(html, self.card()))
 
+    def test_accessible_archive_format_is_supported(self):
+        html = '''<table><tr>
+          <th><time datetime="2026-10-05">05-10-2026</time></th>
+          <td><a class="ssr-w1">5726</a></td>
+          <td><a class="ssr-w1">5746</a></td>
+          <td><a class="ssr-w1">4080</a></td>
+          <td class="ssr-dn">#261005</td><td>—</td>
+        </tr></table>'''
+        self.assertEqual("#261005", scrape._grand_dragon_draw_no(html, self.card()))
+
 
 class DaMaCai13DBonusTests(unittest.TestCase):
     def card(self):
@@ -213,6 +223,22 @@ class DaMaCai13DBonusTests(unittest.TestCase):
         moon["D6"]["JP2"] = "pending"
         with self.assertRaisesRegex(ValueError, "invalid amount"):
             scrape.enrich_damacai13d_from_moon(self.card(), moon)
+
+    def test_bad_secondary_feed_holds_only_the_damacai_pair(self):
+        data = {"providers": {
+            "damacai": {"drawDate": "04-11-2026", "first": "9999"},
+            "damacai13d": self.card(),
+            "magnum": {"drawDate": "04-11-2026", "first": "1234"},
+        }}
+        previous = {"providers": {
+            "damacai": {"drawDate": "01-11-2026", "first": "4863"},
+            "damacai13d": self.card(),
+        }}
+        bad = self.moon()
+        bad["D6"]["P1"] = "000000"
+        self.assertTrue(scrape.enrich_or_hold_damacai_pair(data, previous, bad))
+        self.assertEqual("4863", data["providers"]["damacai"]["first"])
+        self.assertEqual("1234", data["providers"]["magnum"]["first"])
 
 
 class LottoInProgressTests(unittest.TestCase):

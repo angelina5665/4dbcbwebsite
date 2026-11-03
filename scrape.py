@@ -19,7 +19,7 @@ from results_http import fresh_request
 
 SOURCE = "https://4d4d.co/"
 GD_SOURCE = "https://www.4dmoon.com/feedwest.json"
-GD_DRAW_ARCHIVE = "https://tiok4d.com/results/grand-dragon-4d/{year}/{month}"
+GD_DRAW_ARCHIVE = "https://4dmalaya.com/en/dragon-4d/"
 NINE_SOURCE = "https://4dgm.com/?view=home"
 NINE_CROSSCHECK_SOURCE = "https://lotto09.com/"
 HUAWEI_RESULTS_BASE = os.environ.get("HUAWEI_RESULTS_BASE", "https://api.huawei88.org").rstrip("/")
@@ -294,13 +294,16 @@ def _grand_dragon_draw_no(html, card):
     for row in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S | re.I):
         date_match = re.search(r'<time[^>]+datetime=["\']([^"\']+)', row, re.I)
         numbers = [clean(value) for value in re.findall(r'class=["\'][^"\']*recent-number[^"\']*["\'][^>]*>(.*?)</td>', row, re.S | re.I)]
+        if len(numbers) < 3:
+            numbers = [clean(value) for value in re.findall(r'class=["\'][^"\']*ssr-w1[^"\']*["\'][^>]*>(.*?)</a>', row, re.S | re.I)]
         cells_in_row = [clean(value) for value in re.findall(r"<td[^>]*>(.*?)</td>", row, re.S | re.I)]
         if not date_match or date_match.group(1) != draw_date or len(numbers) < 3 or len(cells_in_row) < 2:
             continue
         if numbers[:3] != [card["first"], card["second"], card["third"]]:
             raise ValueError("Grand Dragon draw-number source disagrees on top prizes")
-        draw_no = cells_in_row[1]
-        if re.fullmatch(r"\d{1,6}/\d{4}", draw_no) is None:
+        draw_match = re.search(r'class=["\'][^"\']*ssr-dn[^"\']*["\'][^>]*>(.*?)</td>', row, re.S | re.I)
+        draw_no = clean(draw_match.group(1)) if draw_match else cells_in_row[1]
+        if re.fullmatch(r"(?:#\d{6}|\d{1,6}/\d{4})", draw_no) is None:
             raise ValueError("Grand Dragon draw-number source has an invalid draw number")
         return draw_no
     return None
@@ -325,9 +328,8 @@ def fetch_grand_dragon(raw=None):
     card["special"] = sp[:10] + [""] + sp[10:13] + [""]
     card["consolation"] = [g.get("C%d" % i, "") for i in range(1, 11)]
     if card.get("drawDate"):
-        day, month, year = card["drawDate"].split("-")
         try:
-            archive = fetch(GD_DRAW_ARCHIVE.format(year=year, month=month))
+            archive = fetch(GD_DRAW_ARCHIVE)
             draw_no = _grand_dragon_draw_no(archive, card)
             if draw_no:
                 card["drawNo"] = draw_no
@@ -395,6 +397,21 @@ def enrich_damacai13d_from_moon(card, raw):
             raise ValueError("Da Ma Cai 1+3D cross-check disagrees on zodiac %d" % index)
         row["bonus"] = _normalise_amount(source.get("JP%d" % index))
     return card
+
+
+def enrich_or_hold_damacai_pair(data, baseline, raw):
+    """Keep one malformed 1+3D feed from blocking unrelated verified cards."""
+    providers = data.get("providers", {})
+    previous = (baseline or {}).get("providers", {})
+    try:
+        enrich_damacai13d_from_moon(providers.get("damacai13d"), raw)
+        return False
+    except ValueError:
+        if previous.get("damacai") and previous.get("damacai13d"):
+            providers["damacai"] = previous["damacai"]
+            providers["damacai13d"] = previous["damacai13d"]
+            return True
+        raise
 
 
 def _nine_lotto_card(html, source):
@@ -614,13 +631,23 @@ def main():
     moon = None
     try:
         moon = json.loads(fetch(GD_SOURCE))
-        if "damacai13d" in data["providers"]:
-            enrich_damacai13d_from_moon(data["providers"]["damacai13d"], moon)
-        gd = fetch_grand_dragon(moon)
+    except Exception as e:
+        print("4dmoon cross-check feed failed (%s)" % e, file=sys.stderr)
+
+    try:
+        if enrich_or_hold_damacai_pair(data, baseline, moon):
+            print("Da Ma Cai 1+3D cross-check failed - keeping the last verified Da Ma Cai pair", file=sys.stderr)
+    except Exception as e:
+        print("Da Ma Cai 1+3D cross-check failed (%s) - no complete baseline pair" % e, file=sys.stderr)
+
+    try:
+        gd = fetch_grand_dragon(moon) if moon is not None else None
         if gd:
             data["providers"]["gd4d"] = gd
     except Exception as e:
         print("Grand Dragon fetch failed (%s) - keeping the rest" % e, file=sys.stderr)
+    if "gd4d" not in data["providers"] and ((baseline or {}).get("providers") or {}).get("gd4d"):
+        data["providers"]["gd4d"] = baseline["providers"]["gd4d"]
 
     try:
         data["providers"]["nine"] = fetch_nine_lotto()
