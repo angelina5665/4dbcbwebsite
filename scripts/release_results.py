@@ -170,6 +170,37 @@ def all_current(now):
         cards[key].get("drawDate") == today for key in REQUIRED)
 
 
+def freshness_observation(snapshot, now):
+    """Report provider dates separately; never infer freshness from the global date alone."""
+    cards = snapshot.get("providers", {})
+    today = now.strftime("%d-%m-%Y")
+    missing = sorted(REQUIRED - cards.keys())
+    provider_dates = {
+        key: cards.get(key, {}).get("drawDate")
+        for key in sorted(REQUIRED)
+    }
+    pending = [
+        key for key, draw_date in provider_dates.items()
+        if draw_date != today
+    ]
+    return {
+        "checkedAtMYT": now.strftime("%Y-%m-%d %H:%M:%S MYT"),
+        "expectedDrawDate": today,
+        "snapshotUpdated": snapshot.get("updated"),
+        "globalDrawDate": snapshot.get("drawDate"),
+        "providerDrawDates": provider_dates,
+        "missingProviders": missing,
+        "pendingProviders": pending,
+    }
+
+
+def log_observation(attempt, changed, now):
+    snapshot = json.loads((ROOT / "results.json").read_text(encoding="utf-8"))
+    record = freshness_observation(snapshot, now)
+    record.update({"attempt": attempt, "generatedFilesChanged": bool(changed)})
+    print("MY4D_RESULT_OBSERVATION " + json.dumps(record, sort_keys=True), flush=True)
+
+
 def cycle(publishing):
     assert_clean()
     if publishing:
@@ -202,10 +233,15 @@ def main():
     if args.publish and os.environ.get("GITHUB_ACTIONS") != "true":
         parser.error("--publish requires the existing GitHub Actions runner")
     # Maximum 20 minutes per job. Active polling survives missed later cron ticks.
+    started = now_myt()
+    print("MY4D_UPDATER_START " + started.strftime("%Y-%m-%d %H:%M:%S MYT"), flush=True)
     deadline = time.monotonic() + 20 * 60
+    attempt = 0
     while True:
-        cycle(args.publish)
+        attempt += 1
+        changed = cycle(args.publish)
         now = now_myt()
+        log_observation(attempt, changed, now)
         if args.once or not args.publish or not in_window(now) or all_current(now):
             break
         remaining = deadline - time.monotonic()

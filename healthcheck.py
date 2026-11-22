@@ -7,6 +7,7 @@ Checks, in plain words:
   3. MY4D still exposes the migration, crawlability, theme and CTA signals.
   4. MY4D's saved provider results do not lag the relay.
   5. Every old-domain origin preserves a representative path in one 301 hop.
+  6. A unique missing MY4D URL returns an actual HTTP 404 response.
 
 Run by GitHub Actions on a schedule; on failure the workflow opens an issue,
 which emails the owner automatically.
@@ -173,11 +174,23 @@ for origin in OLD_ORIGINS:
     except Exception as e:
         problems.append("%s redirect check failed: %s" % (origin + REDIRECT_PATH, e))
 
+# 6: a branded not-found page must retain the real HTTP 404 transport status
+missing_path = "healthcheck-missing-%s" % now.strftime("%Y%m%d%H%M%S")
+missing_url = SITE + missing_path + "?health=1"
+try:
+    status, location = direct_status(missing_url)
+    if status != 404:
+        problems.append("%s returned %s instead of an HTTP 404" % (missing_url, status))
+    elif location:
+        problems.append("%s unexpectedly redirected to %s instead of returning 404" % (missing_url, location))
+except Exception as e:
+    problems.append("%s exact 404 check failed: %s" % (missing_url, e))
+
 if problems:
     print("PROBLEMS FOUND:")
     for p in problems:
         print(" -", p)
     sys.exit(1)
 
-print("All healthy: source, relay, published MY4D results, crawl signals and migration redirects. Checked",
+print("All healthy: source, relay, published MY4D results, crawl signals, migration redirects and exact 404 transport. Checked",
       now.strftime("%d-%m-%Y %H:%M MYT"))

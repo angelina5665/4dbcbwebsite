@@ -18,6 +18,7 @@
 <main>
 <article>
   <h1>Malaysia 4D Results Data and Freshness Guide</h1>
+  <p class="effective"><strong>Page updated:</strong> 22 November 2026</p>
   <p class="effective"><strong>Page updated:</strong> 3 October 2026</p>
 
   <p>This page explains how MY4D imports and displays Malaysia 4D result information, what its automated checks can and cannot prove, why provider dates can differ, and which historical records are actually retained. Results are provided for reference only. MY4D is not a lottery operator and does not imply provider affiliation.</p>
@@ -51,6 +52,10 @@
   <h2>Corrections and stale data</h2>
   <p>If fetching or a required generation check fails, the scheduled job does not publish the proposed results. The existing website can therefore remain on an earlier draw. Check each provider card’s date rather than assuming the newest site update applies to every provider.</p>
   <p>A later accepted import can change a current result. Older retained archives require a separate review and correction at their existing URLs; the automated current-results job does not silently rewrite those archives.</p>
+
+  <h2>Draw schedules and result update times</h2>
+  <p>Providers may publish on different dates, and a scheduled draw time is not proof that a complete source result was available at that moment. The updater starts on its configured schedule, retries while required providers remain incomplete, records the accepted snapshot time, and publishes only after the validation gates pass.</p>
+  <p>The homepage therefore shows each provider's own draw date and a separate site data-update time. MY4D does not invent or label an upstream release timestamp. For current coverage, see <a class="inline-link" href="/magnum-4d-results/">Magnum 4D</a>, <a class="inline-link" href="/sports-toto-4d-results/">Sports Toto</a>, <a class="inline-link" href="/da-ma-cai-results/">Da Ma Cai</a>, and <a class="inline-link" href="/east-malaysia-4d-results/">East Malaysia results</a>.</p>
 
   <h2>Historical and number-search coverage</h2>
   <p>The <a class="inline-link" href="/past-results/">past-results archive</a> lists only completed draws retained by this site. The <a class="inline-link" href="/prize-history/">number-history search</a> preserves leading zeroes and distinguishes ordinary prize tiers from jackpot products, but coverage differs by operator and year. An empty match does not prove a number never appeared outside the retained dataset.</p>

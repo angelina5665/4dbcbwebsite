@@ -64,7 +64,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   const websiteSchema = JSON.parse(websiteSchemaMatch[1]);
   const latestProvider = Object.values(results.providers)
     .reduce((latest, provider) => drawTime(provider.drawDate) > drawTime(latest.drawDate) ? provider : latest);
-  assert.match(html, /<title>Malaysia 4D Results \| 4DVIP88<\/title>/);
+  assert.match(html, /<title>4D Result Today Malaysia \| 4DVIP88<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]*4DVIP88[^"]*">/);
   assert.match(html, /<meta property="og:site_name" content="4DVIP88">/);
   assert.match(html, /<link rel="canonical" href="https:\/\/my4d\.co\/">/);
@@ -74,7 +74,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.match(html, /<link rel="alternate" hreflang="x-default" href="https:\/\/my4d\.co\/">/);
   assert.equal((html.match(/<link rel="alternate" hreflang=/g) || []).length, 3);
   assert.equal(websiteSchema.name, "4DVIP88");
-  assert.deepEqual(websiteSchema.alternateName, ["4D VIP", "4D VIP 88"]);
+  assert.deepEqual(websiteSchema.alternateName, ["MY4D", "4D VIP", "4D VIP 88"]);
   assert.equal(websiteSchema.url, "https://my4d.co/");
   assert.match(html, /href="\/assets\/theme\.css\?v=20261003r1"/);
   assert.match(html, /src="\/assets\/theme\.js\?v=20261003r1"/);
@@ -91,7 +91,7 @@ test("checked-in prerender is synchronized and exposes the result facts", async 
   assert.equal(results.recentDates[0], `${results.drawDate} (${results.drawDay})`);
   assert.equal(results.providers.cashsweep.name, "Special Cash Sweep 4D");
   assert.equal((html.match(/<h1\b/g) || []).length, 1);
-  assert.match(html, /<h1><a href="\/">4D RESULT MALAYSIA<\/a><\/h1>/);
+  assert.match(html, /<h1><a href="\/">4D RESULT TODAY MALAYSIA<\/a><\/h1>/);
   assert.equal((rawResults.match(/class="outerbox"/g) || []).length, Object.keys(results.providers).length);
   assert.match(rawResults, /Cashsweep 4D/);
   assert.doesNotMatch(rawResults, /Special Cash Sweep 4D|Cashweep 4D/);
@@ -136,7 +136,7 @@ test("generated category headings link to existing pages or a real in-page secti
   const html = await fs.readFile(path.join(repo, "index.html"), "utf8");
   const rawResults = generatedRegion(html);
   const sections = [
-    ["4D RESULT MALAYSIA", "/"],
+    ["4D RESULT TODAY MALAYSIA", "/"],
     ["4D RESULT SINGAPORE", "#singapore-results"],
     ["4D RESULT SABAH SARAWAK", "/east-malaysia-4d-results/"],
   ];

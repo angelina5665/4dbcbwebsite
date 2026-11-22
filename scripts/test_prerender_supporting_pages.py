@@ -142,7 +142,7 @@ class SupportingPageTests(unittest.TestCase):
         cases = (
             ("magnum-4d-results/index.html", "Magnum 4D Results in Malaysia"),
             ("west-malaysia-4d-results/index.html", "West Malaysia 4D Results"),
-            ("ms/index.html", "Keputusan 4D Malaysia"),
+            ("ms/index.html", "Keputusan 4D Hari Ini Malaysia"),
         )
         for relative_path, original in cases:
             with self.subTest(relative_path=relative_path):
@@ -159,6 +159,20 @@ class SupportingPageTests(unittest.TestCase):
                 self.assertEqual(run.returncode, 2)
                 self.assertIn("non-result HTML drift", run.stderr)
                 self.assertEqual(before, [digest(path) for path in guarded])
+
+    def test_explicit_shell_refresh_keeps_h1_and_stylesheet_guards(self) -> None:
+        temporary, target = self.make_fixture()
+        self.addCleanup(temporary.cleanup)
+        page = target / "magnum-4d-results/index.html"
+        page.write_text(
+            page.read_text(encoding="utf-8").replace("Sources &amp; Method", "Old footer label", 1),
+            encoding="utf-8",
+        )
+        run = self.run_generator(target, "--refresh-shell")
+        self.assertEqual(run.returncode, 0, run.stderr or run.stdout)
+        refreshed = page.read_text(encoding="utf-8")
+        self.assertIn("Sources &amp; Method", refreshed)
+        self.assertEqual(refreshed.count("<h1"), 1)
 
     def test_incomplete_provider_set_blocks_all_writes(self) -> None:
         temporary, target = self.make_fixture()

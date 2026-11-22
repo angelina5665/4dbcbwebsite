@@ -38,6 +38,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", type=Path, default=DEFAULT_REPO_ROOT)
     parser.add_argument("--check", action="store_true", help="fail if generated files are stale")
+    parser.add_argument(
+        "--refresh-shell",
+        action="store_true",
+        help="apply an explicitly reviewed generated-page shell update while preserving H1 and stylesheet guards",
+    )
     return parser.parse_args(argv)
 
 
@@ -174,7 +179,15 @@ def run(argv: list[str]) -> int:
         for relative_path, content in generated.items():
             target = repo / relative_path
             current = target.read_text(encoding="utf-8")
-            require_unchanged_shell(current, content, relative_path)
+            if args.refresh_shell:
+                if current.count("<h1") != 1 or content.count("<h1") != 1:
+                    raise SupportingPageError(f"{relative_path} must keep exactly one H1")
+                current_styles = re.findall(r'<link\s+rel="stylesheet"[^>]*>', current)
+                generated_styles = re.findall(r'<link\s+rel="stylesheet"[^>]*>', content)
+                if current_styles != generated_styles:
+                    raise SupportingPageError(f"stylesheet references changed in {relative_path}")
+            else:
+                require_unchanged_shell(current, content, relative_path)
             planned[target] = content
 
         updated = site.pre.parse_updated(results["updated"])

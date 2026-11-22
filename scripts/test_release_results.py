@@ -94,6 +94,22 @@ class ReleaseTests(unittest.TestCase):
             path.write_text(json.dumps(data))
             self.assertFalse(release.all_current(now))
 
+    def test_freshness_observation_preserves_every_provider_date(self):
+        now = datetime(2026, 11, 21, 19, 30, tzinfo=release.MYT)
+        data = {
+            "updated": "2026-11-21 19:29 MYT",
+            "drawDate": "21-11-2026",
+            "providers": {key: {"drawDate": "21-11-2026"} for key in release.REQUIRED},
+        }
+        data["providers"]["nine"]["drawDate"] = "19-11-2026"
+        del data["providers"]["gd4d"]
+        observed = release.freshness_observation(data, now)
+        self.assertEqual("19-11-2026", observed["providerDrawDates"]["nine"])
+        self.assertIsNone(observed["providerDrawDates"]["gd4d"])
+        self.assertEqual(["gd4d"], observed["missingProviders"])
+        self.assertEqual(["gd4d", "nine"], observed["pendingProviders"])
+        self.assertEqual("2026-11-21 19:30:00 MYT", observed["checkedAtMYT"])
+
     def test_no_change_does_not_test_or_publish(self):
         with tempfile.TemporaryDirectory() as directory, mock.patch.object(release, "ROOT", Path(directory)):
             (Path(directory) / "results.json").write_text("original")

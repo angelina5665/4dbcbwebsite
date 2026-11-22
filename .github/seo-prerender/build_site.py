@@ -216,6 +216,8 @@ def footer(language: str = "en-MY") -> str:
 <footer class="site-footer"><div class="footer-inner">
   <nav class="footer-nav" aria-label="Navigasi kaki halaman">
     <a href="/">Utama</a><a href="/about.html">Tentang Kami</a><a href="/methodology.html">Sumber &amp; Kaedah</a>
+    <a href="/past-results/">Keputusan Lepas</a><a href="/4d-prize-guide/">Panduan Hadiah</a><a href="/dictionary.html">Kamus</a>
+    <a href="/play-guide/">Panduan Permainan</a><a href="/east-malaysia-4d-results/">Malaysia Timur</a>
     <a href="/privacy.html">Privasi</a><a href="/disclaimer.html">Penafian</a>
     <a href="/affiliate-disclosure.html">Pendedahan Afiliasi</a><a href="/sitemap.xml">Peta Laman</a>
   </nav>
@@ -225,6 +227,8 @@ def footer(language: str = "en-MY") -> str:
 <footer class="site-footer"><div class="footer-inner">
   <nav class="footer-nav" aria-label="Footer">
     <a href="/">Home</a><a href="/about.html">About</a><a href="/methodology.html">Sources &amp; Method</a>
+    <a href="/past-results/">Past Results</a><a href="/4d-prize-guide/">Prize Guide</a><a href="/dictionary.html">Dictionary</a>
+    <a href="/play-guide/">Play Guide</a><a href="/east-malaysia-4d-results/">East Malaysia</a>
     <a href="/privacy.html">Privacy</a><a href="/disclaimer.html">Disclaimer</a>
     <a href="/affiliate-disclosure.html">Affiliate Disclosure</a><a href="/sitemap.xml">Sitemap</a>
   </nav>
@@ -615,6 +619,7 @@ def malay_page(results: dict[str, Any]) -> str:
   <h2>Keputusan 4D mengikut penyedia</h2>
   <p>Jika anda mencari keputusan 4D hari ini, semak tarikh cabutan yang dipaparkan terlebih dahulu. Halaman ini memaparkan keputusan yang tersedia di 4DVIP88, bukan keputusan masa nyata atau jaminan bahawa setiap penyedia mempunyai cabutan pada hari yang sama.</p>
   <p>Keputusan Sports Toto, Magnum 4D, Da Ma Cai, Grand Dragon, Sabah 88, Sandakan STC dan Special Cash Sweep dipaparkan mengikut penyedia dan tarikh cabutan masing-masing.</p>
+  <p>Terus ke <a href="/magnum-4d-results/">keputusan Magnum 4D</a>, <a href="/sports-toto-4d-results/">keputusan Sports Toto</a>, <a href="/da-ma-cai-results/">keputusan Da Ma Cai</a> atau <a href="/east-malaysia-4d-results/">keputusan Malaysia Timur</a>.</p>
   <div class="status-box"><p><strong>Tarikh keputusan terkini yang dipaparkan:</strong> {esc(draw_date)}</p><p><strong>Masa kemas kini data:</strong> {esc(updated)}</p></div>
   <div class="results-grid">{cards}</div>
   <h2>Cara membaca keputusan</h2>
@@ -627,10 +632,10 @@ def malay_page(results: dict[str, Any]) -> str:
   <p class="language-switch"><a href="/" hreflang="en-MY">Lihat halaman ini dalam bahasa Inggeris</a></p>
 </section>"""
     return page_document(
-        title="Keputusan 4D Malaysia | 4DVIP88",
-        description="Semak keputusan 4D Malaysia terkini untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia lain, bersama tarikh cabutan dan masa kemas kini.",
-        path="/ms/", h1="Keputusan 4D Malaysia",
-        lead="Semak keputusan 4D bagi penyedia utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
+        title="Keputusan 4D Hari Ini Malaysia | 4DVIP88",
+        description="Semak keputusan 4D hari ini Malaysia untuk Sports Toto, Magnum 4D, Da Ma Cai dan penyedia lain, bersama tarikh cabutan dan masa kemas kini.",
+        path="/ms/", h1="Keputusan 4D Hari Ini Malaysia",
+        lead="Semak keputusan 4D hari ini bagi penyedia utama di Malaysia, bersama tarikh cabutan dan masa kemas kini.",
         body=body, current="ms", language="ms-MY", hreflang=True,
         crumbs=[("Utama", "/"), ("Keputusan 4D", "/ms/")],
     )
@@ -695,8 +700,8 @@ def build(
         ("/", content_modified_iso),
         ("/privacy.html", "2026-09-17"),
         ("/disclaimer.html", "2026-08-24"),
-        ("/about.html", "2026-08-24"),
-        ("/methodology.html", "2026-10-03"),
+        ("/about.html", "2026-11-22"),
+        ("/methodology.html", "2026-11-22"),
         ("/affiliate-disclosure.html", "2026-08-24"),
         ("/dictionary.html", "2026-09-17"),
         ("/prize-history/", "2026-09-17"),
